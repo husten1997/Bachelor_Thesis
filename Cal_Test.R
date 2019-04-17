@@ -11,7 +11,8 @@ data.xts$P <- MSFT$P_xts$d.P_MA[MSFT$NivClean_Ind]
 par(mfrow = c(2, 2))
 acf(data.xts$P, main = c("ACF: P"))
 pacf(data.xts$P, main = c("PACF: P"))
-acf(data.xts$PB, main = c("ACF: PB"))
+acf(data.xts$PB, main = c("ACF: PB")
+    
 pacf(data.xts$PB, main = c("PACF: PB"))
 
 adf.test(data.xts$P)

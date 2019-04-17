@@ -1,6 +1,15 @@
 P_start_date = "1986-03-01"
-count_of_days = 12017
+count_of_days = 396
 BV_start_date = "/1990-03-29"
+
+MSFT <- new.env()
+MSFT$BV <- read_excel("Data_Eikon/American_Electronics/Microsoft.xlsx", 
+                      sheet = "Tabelle1", col_types = c("date", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", "numeric", "numeric"))
+MSFT$MV <- read_excel("Data_Eikon/American_Electronics/Microsoft.xlsx", 
+                      sheet = "Prices", col_types = c("date", 
+                                                      "numeric"))
 
 MSFT$BV$EPS_ttm <- rep(0)
 for(i in c((nrow(MSFT$BV)-3):1)){
@@ -15,11 +24,11 @@ MSFT$BV$d.EPS_ttm <- c((ts(MSFT$BV$EPS_ttm) - lag(ts(MSFT$BV$EPS_ttm)))/lag(ts(M
 #generating and filling of the main xts Object (Data Frame)
 MSFT$Data <- data.frame(matrix(0, nrow = count_of_days, ncol = 13))
 names(MSFT$Data) <- c("Date", "PPS", "BV_E", "BV_T", "Shares", "BPS_E", "BPS_D", "BPS_T", "NI", "EPS", "EPS_ttm", "d.BPS_E", "d.EPS_ttm")
-MSFT$Data[,1] <- seq(as.Date(P_start_date),length=count_of_days ,by="days")
+MSFT$Data[,1] <- seq(as.Date(P_start_date),length=count_of_days ,by="months")
 
 
 #mapping bv and mv on the smae timeline
-MSFT$Data[as.character.Date(MSFT$Data[,1]) %in% as.character.Date(MSFT$MV$Date) ,2] <- as.numeric(rev(MSFT$MV$Close))
+MSFT$Data[ ,2] <- as.numeric(tapply(as.numeric(rev(MSFT$MV$Close)), as.yearmon(rev(MSFT$MV$Date)), mean))
 MSFT$Data[as.character.Date(MSFT$Data[,1]) %in% as.character.Date(MSFT$BV$Date) ,3] <- as.numeric(rev(MSFT$BV$BV_E))
 MSFT$Data[as.character.Date(MSFT$Data[,1]) %in% as.character.Date(MSFT$BV$Date) ,4] <- as.numeric(rev(MSFT$BV$BV_T))
 MSFT$Data[as.character.Date(MSFT$Data[,1]) %in% as.character.Date(MSFT$BV$Date) ,5] <- as.numeric(rev(MSFT$BV$Shares))
@@ -40,7 +49,7 @@ MSFT$Data$d.EPS_ttm[is.nan(MSFT$Data$d.EPS_ttm)] <- 0
 MSFT$Data$d.EPS_ttm[is.infinite(MSFT$Data$d.EPS_ttm)] <- 0
 
 #forward values
-for(i in c(2:count_of_days)){
+for(i in c(2:nrow(MSFT$Data))){
   if(MSFT$Data[i, 2] == 0) MSFT$Data[i, 2] <- MSFT$Data[i-1, 2]
   if(MSFT$Data[i, 9] == 0) MSFT$Data[i, 9] <- MSFT$Data[i-1, 9]
   if(MSFT$Data[i, 10] == 0) MSFT$Data[i, 10] <- MSFT$Data[i-1, 10]
@@ -56,7 +65,7 @@ colnames(MSFT$P_xts) <- c("P")
 #MSFT$P_xts$MA <- xts(ma(MSFT$P_xts$P, 181), order.by = MSFT$Data$Date)
 #MSFT$P_xts$MA2 <- xts(ma(MSFT$P_xts$P, 913), order.by = MSFT$Data$Date)
 
-MSFT$P_xts$MA <- xts(c(rep(NA, 89), rollmeanr(MSFT$P_xts$P, 90)), order.by = MSFT$Data$Date)
+MSFT$P_xts$MA <- xts(c(rep(NA, 2), rollmeanr(MSFT$P_xts$P, 3)), order.by = MSFT$Data$Date)
 #MSFT$P_xts$MA <- xts(ma(MSFT$P_xts$P, 90), order.by = MSFT$Data$Date)
 MSFT$P_xts$d.P <- (MSFT$P_xts$P - lag(MSFT$P_xts$P, 1))/lag(MSFT$P_xts$P, 1)
 MSFT$P_xts$d.P[is.nan(MSFT$P_xts$d.P)] <- NA
@@ -102,26 +111,60 @@ MSFT$Ratios.PB <- xts(MSFT$P_xts$MA / MSFT$BV_xts$BPS_E, order.by = MSFT$Data$Da
 colnames(MSFT$Ratios.PB) <- c("PB")
 MSFT$Ratios.PB$PB[MSFT$Ratios.PB$PB == Inf] <- 0
 
-MSFT$Ratios.PB$MA <- xts(c(rep(NA, 539), rollmeanr(MSFT$Ratios.PB$PB, 540)), order.by = MSFT$Data$Date)
+#MSFT$Ratio.PB.model <- holt(MSFT$Ratios.PB$PB, damped = TRUE, alpha = 0.1, beta = 0.005)
+#MSFT$Ratios.PB$MA[!is.na(MSFT$Ratios.PB$PB)] <- MSFT$Ratio.PB.model$fitted
+#plot(MSFT$Ratios.PB, main = c("PB Ratio"))
+
+#MSFT$Ratios.PB$d.PB <- (MSFT$Ratios.PB$PB - lag(MSFT$Ratios.PB$PB, 1))/lag(MSFT$Ratios.PB$PB, 1)
+#MSFT$Ratios.PB$d.PB <- log(MSFT$Ratios.PB$PB) - lag(log(MSFT$Ratios.PB$PB), 1)
+
+MSFT$Ratios.PB$d.PB <- MSFT$Ratios.PB$PB - lag(MSFT$Ratios.PB$PB, 1)
+MSFT$Ratios.PB$d.PB[is.nan(MSFT$Ratios.PB$d.PB)] <- NA
+MSFT$Ratios.PB$d.PB[is.infinite(MSFT$Ratios.PB$d.PB)] <- NA
+
+
+
+
+#MSFT$Ratios.PB$MA <- xts(c(rep(NA, 17), rollmeanr(MSFT$Ratios.PB$PB, 18)), order.by = MSFT$Data$Date)
+ind <- index(MSFT$Ratios.PB$d.PB[!is.na(MSFT$Ratios.PB$d.PB)])
+MSFT$Ratios.PB$MA <- NA
+MSFT$Ratios.PB$MA[ind] <- cumsum((MSFT$Ratios.PB$d.PB[ind])*0.5)
+MSFT$Ratios.PB$MA2 <- NA
+MSFT$Ratios.PB$MA2[ind] <- cumsum((MSFT$Ratios.PB$d.PB[ind])*0.25)
 #MSFT$Ratios.PB$MA2 <- xts(c(rep(NA, 99), rollmeanr(MSFT$Ratios.PB$PB, 100)), order.by = MSFT$Data$Date)
 
 #MSFT$Ratios.PB$MA <- xts(ma(MSFT$Ratios.PB$PB, 540), order.by = MSFT$Data$Date)
 #MSFT$Ratios.PB$MA <- xts(c(rep(NA, 539), rollmeanr(MSFT$Ratios.PB$P, 540)), order.by = MSFT$Data$Date)
-MSFT$Ratios.PB$MA2 <- xts(ma(MSFT$Ratios.PB$PB, 360), order.by = MSFT$Data$Date)
+#MSFT$Ratios.PB$MA2 <- xts(ma(MSFT$Ratios.PB$PB, 360), order.by = MSFT$Data$Date)
 MSFT$Ratios.PB$NivCleaned <- MSFT$Ratios.PB$PB - MSFT$Ratios.PB$MA
-MSFT$Ratios.PB$d.PB <- (MSFT$Ratios.PB$PB - lag(MSFT$Ratios.PB$PB, 1))/lag(MSFT$Ratios.PB$PB, 1)
-MSFT$Ratios.PB$d.PB[is.nan(MSFT$Ratios.PB$d.PB)] <- NA
-MSFT$Ratios.PB$d.PB[is.infinite(MSFT$Ratios.PB$d.PB)] <- NA
+plot(MSFT$Ratios.PB, main = c("PB Ratio"))
+View(MSFT$Ratios.PB)
 
+MSFT$test.data <- MSFT$P_xts$d.P_MA
+colnames(MSFT$test.data) <- c("dP")
+MSFT$test.data$dB <- MSFT$BV_xts$d.BPS_E
+MSFT$test.data$r <- MSFT$test.data$dP / MSFT$test.data$dB
+MSFT$test.data$dPB <- MSFT$Ratios.PB$d.PB
+MSFT$test.data$r[is.infinite(MSFT$test.data$r)] <- NA
+plot(MSFT$test.data)
+View(MSFT$test.data)
+
+adf.test(MSFT$Ratios.PB$PB[!is.na(MSFT$Ratios.PB$PB)])
+MSFT$Ratios.PB$I.PB <- MSFT$Ratios.PB$PB - lag(MSFT$Ratios.PB$PB)
+adf.test(MSFT$Ratios.PB$I.PB[!is.na(MSFT$Ratios.PB$I.PB)])
+plot(MSFT$Ratios.PB$I.PB)
+plot.dens(MSFT$Ratios.PB$I.PB, title = "I.PB", plot.norm = TRUE, plot.lines = FALSE)
+plot(density(MSFT$Ratios.PB$I.PB, na.rm = TRUE))
+lines(density(rt(1000000, 3)), col = c("grey"))
 #PE--------------------------------------------------------------------------
 MSFT$Ratios.PE <- xts((MSFT$P_xts$MA + MSFT$BV_xts$BPS_D)/MSFT$EPS_xts$EPS_ttm, order.by = MSFT$Data$Date)
 colnames(MSFT$Ratios.PE) <- c("PE")
 MSFT$Ratios.PE$PE[MSFT$Ratios.PE$PE == Inf] <- 0
 
-#MSFT$Ratios.PE$MA <- xts(c(rep(NA, 199), rollmeanr(MSFT$Ratios.PE$PE, 200)), order.by = MSFT$Data$Date)
+MSFT$Ratios.PE$MA <- xts(c(rep(NA, 17), rollmeanr(MSFT$Ratios.PE$PE, 18)), order.by = MSFT$Data$Date)
 #MSFT$Ratios.PE$MA2 <- xts(c(rep(NA, 99), rollmeanr(MSFT$Ratios.PE$PE, 100)), order.by = MSFT$Data$Date)
-MSFT$Ratios.PE$MA <- xts(ma(MSFT$Ratios.PE$PE, 540), order.by = MSFT$Data$Date)
-MSFT$Ratios.PE$MA2 <- xts(ma(MSFT$Ratios.PE$PE, 360), order.by = MSFT$Data$Date)
+#MSFT$Ratios.PE$MA <- xts(ma(MSFT$Ratios.PE$PE, 540), order.by = MSFT$Data$Date)
+#MSFT$Ratios.PE$MA2 <- xts(ma(MSFT$Ratios.PE$PE, 360), order.by = MSFT$Data$Date)
 MSFT$Ratios.PE$NivCleaned <- MSFT$Ratios.PE$PE - MSFT$Ratios.PE$MA
 
 MSFT$Ratios.PE$d.PE <- (MSFT$Ratios.PE$PE - lag(MSFT$Ratios.PE$PE, 1))/lag(MSFT$Ratios.PE$PE, 1)
