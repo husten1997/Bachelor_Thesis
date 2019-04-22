@@ -78,10 +78,13 @@ MSFT$P_xts$d.P_MA[is.infinite(MSFT$P_xts$d.P_MA)] <- NA
 MSFT$BV_xts <- xts(MSFT$Data$BPS_E, order.by = MSFT$Data$Date)
 colnames(MSFT$BV_xts) <- c("BPS_E")
 MSFT$BV_xts$BPS_E[MSFT$BV_xts$BPS_E == 0] <- NA
-MSFT$BV_xts$BPS_E[1] <- 0
-MSFT$BV_xts$BPS_E[BV_start_date] <- 0
-MSFT$BV_xts$BPS_E <- xts(na.interp(MSFT$BV_xts$BPS_E), order.by = MSFT$Data$Date)
-MSFT$BV_xts$BPS_E[BV_start_date] <- NA
+#MSFT$BV_xts$BPS_E[1] <- 0
+#MSFT$BV_xts$BPS_E[BV_start_date] <- 0
+#MSFT$BV_xts$BPS_E <- xts(na.interp(MSFT$BV_xts$BPS_E), order.by = MSFT$Data$Date)
+#MSFT$BV_xts$BPS_E[BV_start_date] <- NA
+
+for(i in 2:nrow(MSFT$BV_xts))
+  if(is.na(MSFT$BV_xts$BPS_E[i])) MSFT$BV_xts$BPS_E[i] <- MSFT$BV_xts$BPS_E[i-1]
 
 MSFT$BV_xts$d.BPS_E <- xts(MSFT$Data$d.BPS_E, order.by = MSFT$Data$Date)
 MSFT$BV_xts$d.EPS_ttm <- xts(MSFT$Data$d.EPS_ttm, order.by = MSFT$Data$Date)
@@ -122,8 +125,14 @@ MSFT$Ratios.PB$d.PB <- MSFT$Ratios.PB$PB - lag(MSFT$Ratios.PB$PB, 1)
 MSFT$Ratios.PB$d.PB[is.nan(MSFT$Ratios.PB$d.PB)] <- NA
 MSFT$Ratios.PB$d.PB[is.infinite(MSFT$Ratios.PB$d.PB)] <- NA
 
+PB.model <- ets(MSFT$Ratios.PB$PB, opt.crit = "mae", na.action = "na.contiguous")
 
+PB.model
 
+plot.data <- as.xts(MSFT$Ratios.PB$PB)
+colnames(plot.data) <- c("PB")
+plot.data$fitted <- xts(c(rep(NA, 49), PB.model$fitted), order.by = MSFT$Data$Date)
+plot(plot.data)
 
 #MSFT$Ratios.PB$MA <- xts(c(rep(NA, 17), rollmeanr(MSFT$Ratios.PB$PB, 18)), order.by = MSFT$Data$Date)
 ind <- index(MSFT$Ratios.PB$d.PB[!is.na(MSFT$Ratios.PB$d.PB)])
