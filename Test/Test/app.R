@@ -16,26 +16,21 @@ ui <- fluidPage(titlePanel("Dampening of change of RW"),
                 sidebarLayout(
                   sidebarPanel(
                     numericInput("seed_in", "Set seed", min = 0, max = 999999999999, step = 100, value = 12345), 
-                    sliderInput(
-                      "nsd",
-                      "Number of sd:",
-                      min = 1,
-                      max = 50,
-                      value = 1,
-                      step = 0.1
-                    ),
+                    numericInput("length_in", "Set length of RW", min = 100, max = 999999999999, step = 100, value = 1000),
                     sliderInput(
                       "nw",
                       "Weight of propability:",
-                      min = -1,
+                      min = 0,
                       max = 1,
-                      value = 0,
+                      value = 0.5,
                       step = 0.01
-                    )
+                    ), 
+                    plotOutput("Dens_Plot"),
+                    tableOutput("Stat_Text")
                 ),
                 
                 # Show a plot of the generated distribution
-                mainPanel(plotOutput("RW_plot"), plotOutput("Diff_plot"), plotOutput("Dens_Plot"))))
+                mainPanel(plotOutput("RW_plot"), plotOutput("Diff_plot"))))
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
@@ -43,12 +38,12 @@ server <- function(input, output) {
   
   diff <- reactive({
     seed <- input$seed_in
+    length <- input$length_in
     set.seed(seed)
-    e <- rnorm(100, 0, 1)
+    e <- rnorm(length, 0, 1)
     x <- cumsum(e)
     
-    p <- 2 * pnorm(-abs(e), mean = 0, sd = input$nsd)
-    wp <- e * (p - p * input$nw)
+    wp <- e * input$nw
     wx <- cumsum(wp)
     
     diff <- x - wx
@@ -57,14 +52,12 @@ server <- function(input, output) {
   
   output$RW_plot <- renderPlot({
     seed <- input$seed_in
+    length <- input$length_in
     set.seed(seed)
-    e <- rnorm(100, 0, 1)
+    e <- rnorm(length, 0, 1)
     x <- cumsum(e)
     
-    #plot(x, type = c("l"))
-    
-    p <- 2 * pnorm(-abs(e), mean = 0, sd = input$nsd)
-    wp <- e * (p - p * input$nw)
+    wp <- e * input$nw
     wx <- cumsum(wp)
     
     plot(x, type = c("l"), main = c("RW"))
@@ -83,16 +76,30 @@ server <- function(input, output) {
   
   output$Dens_Plot <- renderPlot({
     seed <- input$seed_in
+    length <- input$length_in
     set.seed(seed)
-    e <- rnorm(100, 0, 1)
-    x <- cumsum(e)
+    e <- rnorm(length, 0, 1)
     
-    p <- 2 * pnorm(-abs(e), mean = 0, sd = input$nsd)
-    wp <- e * (p - p * input$nw)
-    wx <- cumsum(wp)
+    wp <- e * input$nw
+
+    plot(density(e), ylim = c(0, max(density(wp)$y)))
+    lines(density(wp), col = c("orange"))
+  })
+  
+  output$Stat_Text <- renderTable({
+    seed <- input$seed_in
+    length <- input$length_in
+    set.seed(seed)
+    e <- rnorm(length, 0, 1)
     
-    plot(density(x), ylim = max(density(wx)$y))
-    lines(density(wx), col = c("orange"))
+    wp <- e * input$nw
+    
+    out <- data.frame(c("e", "e dampend"))
+    colnames(out) <- c("Names")
+    out$mean <- c(mean(e), mean(wp))
+    out$sd <- c(sd(e), sd(wp))
+    
+    out
   })
 }
 
