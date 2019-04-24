@@ -125,13 +125,13 @@ MSFT$Ratios.PB$d.PB <- MSFT$Ratios.PB$PB - lag(MSFT$Ratios.PB$PB, 1)
 MSFT$Ratios.PB$d.PB[is.nan(MSFT$Ratios.PB$d.PB)] <- NA
 MSFT$Ratios.PB$d.PB[is.infinite(MSFT$Ratios.PB$d.PB)] <- NA
 
-PB.model <- ets(MSFT$Ratios.PB$PB, opt.crit = "mae", na.action = "na.contiguous")
+PB.model <- ets(MSFT$Ratios.PB$PB["/2008"], opt.crit = "amse", na.action = "na.contiguous")
 
 PB.model
 
 plot.data <- as.xts(MSFT$Ratios.PB$PB)
 colnames(plot.data) <- c("PB")
-plot.data$fitted <- xts(c(rep(NA, 49), PB.model$fitted), order.by = MSFT$Data$Date)
+plot.data$fitted <- xts(c(rep(NA, 48), PB.model$fitted, forecast(PB.model, h = 123)$mean), order.by = MSFT$Data$Date)
 plot(plot.data)
 
 #MSFT$Ratios.PB$MA <- xts(c(rep(NA, 17), rollmeanr(MSFT$Ratios.PB$PB, 18)), order.by = MSFT$Data$Date)

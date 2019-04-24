@@ -1,0 +1,122 @@
+---
+title: "ForcecastShow"
+runtime: shiny
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(forecast)
+library(readxl)
+library(data.table)
+library(zoo)
+
+P_start_date = "1986-03-01"
+count_of_days = 396
+BV_start_date = "/1990-03-29"
+
+MSFT <- new.env()
+MSFT$BV <- read_excel("Data_Eikon/American_Electronics/Microsoft.xlsx", 
+                      sheet = "Tabelle1", col_types = c("date", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", "numeric", "numeric"))
+MSFT$MV <- read_excel("Data_Eikon/American_Electronics/Microsoft.xlsx", 
+                      sheet = "Prices", col_types = c("date", 
+                                                      "numeric"))
+
+
+
+
+
+#Price Data-------------------------------------------------------------------------------------
+MSFT$P.Data_pre <- data.table(aggregate(ts(as.numeric(tapply(as.numeric(rev(MSFT$MV$Close)), as.yearmon(rev(MSFT$MV$Date)), mean)), start = c(1987, 1), frequency = 12), nfrequency = 4))
+colnames(MSFT$P.Data_pre) <- c("P")
+
+MSFT$P.Data_pre$d.P <- ts(c(NA, (MSFT$P.Data_pre$P - lag(MSFT$P.Data_pre$P, -1))/lag(MSFT$P.Data_pre$P, -1)), start = c(1987, 1), frequency = 4)
+MSFT$P.Data_pre$d.P[is.nan(MSFT$P.Data_pre$d.P)] <- NA
+MSFT$P.Data_pre$d.P[is.infinite(MSFT$P.Data_pre$d.P)] <- NA
+
+MSFT$P.Data <- data.table(window(MSFT$P.Data_pre$P, start = c(1990, 1)))
+colnames(MSFT$P.Data) <- c("P")
+MSFT$P.Data$d.P <- window(MSFT$P.Data_pre$d.P, start = c(1990, 1))
+
+#Fundamental Data-------------------------------------------------------------------------------
+#I should write them down into the B.Data table => more convenient
+MSFT$BV$EPS_ttm <- rep(0)
+for(i in c((nrow(MSFT$BV)-3):1)){
+  MSFT$BV$EPS_ttm[i] <- sum(MSFT$BV$NI[c((i+3):i)]) / MSFT$BV$Shares[i] 
+}
+MSFT$BV$d.BPS_E <- c((ts(MSFT$BV$BPS_E) - lag(ts(MSFT$BV$BPS_E)))/lag(ts(MSFT$BV$BPS_E)),0)
+MSFT$BV$d.EPS_ttm <- c((ts(MSFT$BV$EPS_ttm) - lag(ts(MSFT$BV$EPS_ttm)))/lag(ts(MSFT$BV$EPS_ttm)),0)
+
+MSFT$B.Data <- data.table(ts(MSFT$BV$BV_E, start = c(1990, 1), frequency = 4))
+colnames(MSFT$B.Data) <- c("BV_E")
+MSFT$B.Data$BV_T <- ts(rev(MSFT$BV$BV_T), start = c(1990, 1), frequency = 4)
+MSFT$B.Data$BPS_E <- ts(rev(MSFT$BV$BPS_E), start = c(1990, 1), frequency = 4)
+MSFT$B.Data$BPS_D <- ts(MSFT$BV$BPS_D, start = c(1990, 1), frequency = 4)
+MSFT$B.Data$BPS_T <- ts(rev(MSFT$BV$BPS_T), start = c(1990, 1), frequency = 4)
+MSFT$B.Data$d.BPS_E <- ts(rev(MSFT$BV$d.BPS_E), start = c(1990, 1), frequency = 4)
+
+#PB-----------------------------------------------------------------------------------------
+MSFT$Ratio.PB <- data.table(ts(MSFT$P.Data$P / MSFT$B.Data$BPS_E, start = c(1990, 1), frequency = 4))
+colnames(MSFT$Ratio.PB) <- c("PB")
+plot(MSFT$Ratio.PB$PB)
+
+MSFT$Ratio.PB$d.PB <- ts(c(NA, MSFT$Ratio.PB$PB - lag(MSFT$Ratio.PB$PB, -1)), start = c(1990, 1), frequency = 4)
+MSFT$Ratio.PB$d.PB[is.nan(MSFT$Ratio.PB$d.PB)] <- NA
+MSFT$Ratio.PB$d.PB[is.infinite(MSFT$Ratio.PB$d.PB)] <- NA
+
+MSFT$Ratio.PB$d2.PB <- ts(c(rep(NA, 2), MSFT$Ratio.PB$PB - lag(MSFT$Ratio.PB$PB, -2)), start = c(1990, 1), frequency = 4)
+MSFT$Ratio.PB$d2.PB[is.nan(MSFT$Ratio.PB$d.PB)] <- NA
+MSFT$Ratio.PB$d2.PB[is.infinite(MSFT$Ratio.PB$d.PB)] <- NA
+
+MSFT$Ratio.PB$d4.PB <- ts(c(rep(NA, 4), MSFT$Ratio.PB$PB - lag(MSFT$Ratio.PB$PB, -4)), start = c(1990, 1), frequency = 4)
+MSFT$Ratio.PB$d4.PB[is.nan(MSFT$Ratio.PB$d.PB)] <- NA
+MSFT$Ratio.PB$d4.PB[is.infinite(MSFT$Ratio.PB$d.PB)] <- NA
+```
+
+```{r eruptions, echo=FALSE}
+inputPanel(
+  numericInput(
+      "Year",
+      "Year:",
+      min = 1990,
+      max = 2019,
+      value = 2000,
+      step = 0.25
+    )
+)
+
+
+renderPlot({
+    in_year <- input$Year
+    
+    par(mfrow = c(1, 2))
+    P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), model = "MAN", alpha = 0.9569147, beta = 0.3423429)
+    plot(forecast(P.model), xlim = c(1990.00, 2020.00), ylim = c(-1, 330), main = c("P"))
+    lines(MSFT$P.Data$P, col = c("grey"))
+    lines(P.model$fitted, col = c("black"))
+    B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(in_year)), model = "MAN", alpha = 0.8245839, beta = 0.3933137)
+    plot(forecast(B.model), xlim = c(1990.00, 2020.00), ylim = c(-1, 15), main = c("BPS"))
+    lines(MSFT$B.Data$BPS_E, col = c("grey"))
+    lines(B.model$fitted, col = c("black"))
+    
+  })
+
+renderPlot({
+    in_year <- input$Year
+    
+    P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), model = "MAN", alpha = 0.9569147, beta = 0.3423429)
+
+    B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(in_year)), model = "MAN", alpha = 0.8245839, beta = 0.3933137)
+    
+    PB.forecast <- ts((forecast(P.model)$mean / forecast(B.model)$mean), start = c(in_year + 0.25), frequency = 4)
+    plot(MSFT$Ratio.PB$PB, col = c("grey"), ylim = c(10, 50), xlim = c(1990, 2020), main = c("PB Ratio with Forecast"))
+    lines(PB.forecast, col = c("red"))
+    lines(window(MSFT$Ratio.PB$PB, end = c(in_year)))
+  })
+```
+
+
+
+
