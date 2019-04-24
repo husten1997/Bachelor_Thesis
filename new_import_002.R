@@ -36,7 +36,7 @@ View(MSFT$P.Data)
 
 adf.test(MSFT$P.Data$P)
 (P.model <- ets(window(MSFT$P.Data$P, end = c(2000, 1)), opt.crit = "mae"))
-(P.model <- auto.arima(window(MSFT$P.Data$P, end = c(2000, 1))))
+(P.model <- auto.arima(window(MSFT$P.Data$P, end = c(2000, 2)), stationary = TRUE, ))
 plot(forecast(P.model))
 #Fundamental Data-------------------------------------------------------------------------------
 #I should write them down into the B.Data table => more convenient

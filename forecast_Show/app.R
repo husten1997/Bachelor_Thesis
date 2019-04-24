@@ -41,7 +41,8 @@ server <- function(input, output) {
     in_year <- input$Year
     
     par(mfrow = c(1, 2))
-    (P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), opt.crit = "mae"))
+    #(P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), opt.crit = "mae"))
+    (P.model <- auto.arima(window(MSFT$P.Data$P, end = c(in_year)), stationary = TRUE, max.q = 0))
     plot(forecast(P.model), xlim = c(1990.00, 2020.00), ylim = c(-1, 330), main = c("P"))
     lines(MSFT$P.Data$P, col = c("grey"))
     lines(P.model$fitted, col = c("black"))
@@ -63,7 +64,8 @@ server <- function(input, output) {
   output$PB_Plot <- renderPlot({
     in_year <- input$Year
     
-    P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), opt.crit = "mae")
+    #P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), opt.crit = "mae")
+    P.model <- auto.arima(window(MSFT$P.Data$P, end = c(in_year)), stationary = TRUE)
 
     B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(in_year), opt.crit = "mae"))
     
