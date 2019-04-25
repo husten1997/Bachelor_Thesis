@@ -8,6 +8,7 @@ library(forecast)
 library(tseries)
 library(ggplot2)
 library(xlsx)
+library(data.table)
 
 source("functions.R")
 source("Import.R")

@@ -92,11 +92,14 @@ renderPlot({
     in_year <- input$Year
     
     par(mfrow = c(1, 2))
-    P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), model = "MAN", alpha = 0.9569147, beta = 0.3423429)
+    P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), model = "MAN", alpha = 0.785, beta = 0.2945)
+    #P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), opt.crit = "mse")
     plot(forecast(P.model), xlim = c(1990.00, 2020.00), ylim = c(-1, 330), main = c("P"))
     lines(MSFT$P.Data$P, col = c("grey"))
     lines(P.model$fitted, col = c("black"))
-    B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(in_year)), model = "MAN", alpha = 0.8245839, beta = 0.3933137)
+    B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(in_year)), model = "MAN", alpha = 0.3893, beta = 0.3893)
+    #B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(in_year)), opt.crit = "mse")
+    #B.model <- auto.arima(window(MSFT$B.Data$BPS_E, end = c(in_year)))
     plot(forecast(B.model), xlim = c(1990.00, 2020.00), ylim = c(-1, 15), main = c("BPS"))
     lines(MSFT$B.Data$BPS_E, col = c("grey"))
     lines(B.model$fitted, col = c("black"))
@@ -106,12 +109,15 @@ renderPlot({
 renderPlot({
     in_year <- input$Year
     
-    P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), model = "MAN", alpha = 0.9569147, beta = 0.3423429)
+    #P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), opt.crit = "mse")
+    P.model <- ets(window(MSFT$P.Data$P, end = c(in_year)), model = "MAN", alpha = 0.785, beta = 0.2945)
 
-    B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(in_year)), model = "MAN", alpha = 0.8245839, beta = 0.3933137)
-    
+    #B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(in_year)), opt.crit = "mse")
+    B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(in_year)), model = "MAN", alpha = 0.3893, beta = 0.3893)
+    #PB.model <- ets(window(MSFT$Ratio.PB$PB, end = c(in_year)), opt.crit = "mse")
     PB.forecast <- ts((forecast(P.model)$mean / forecast(B.model)$mean), start = c(in_year + 0.25), frequency = 4)
     plot(MSFT$Ratio.PB$PB, col = c("grey"), ylim = c(10, 50), xlim = c(1990, 2020), main = c("PB Ratio with Forecast"))
+    #plot(forecast(PB.model), xlim = c(1990.00, 2020.00))
     lines(PB.forecast, col = c("red"))
     lines(window(MSFT$Ratio.PB$PB, end = c(in_year)))
   })
