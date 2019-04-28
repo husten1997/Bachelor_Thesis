@@ -178,3 +178,55 @@ get.extrm_ind <- function(dataset, a = 2){
   #View(cbind(ind_up, ind_down))
   return(list(ind_up, ind_down))
 }
+
+import <- function(envi, start_d, end_d, start_p){
+  #Price Data-------------------------------------------------------------------------------------
+  envi$P.Data_pre <- data.table(aggregate(ts(as.numeric(tapply(as.numeric(rev(envi$MV$Close)), as.yearmon(rev(envi$MV$Date)), mean)), start = start_p, frequency = 12), nfrequency = 4))
+  colnames(envi$P.Data_pre) <- c("P")
+  
+  envi$P.Data_pre$d.P <- ts(c(NA, (envi$P.Data_pre$P - lag(envi$P.Data_pre$P, -1))/lag(envi$P.Data_pre$P, -1)), end = end_d, frequency = 4)
+  envi$P.Data_pre$d.P[is.nan(envi$P.Data_pre$d.P)] <- NA
+  envi$P.Data_pre$d.P[is.infinite(envi$P.Data_pre$d.P)] <- NA
+  
+  envi$P.Data <- data.table(window(envi$P.Data_pre$P, start = start_d))
+  colnames(envi$P.Data) <- c("P")
+  envi$P.Data$d.P <- window(envi$P.Data_pre$d.P, start = start_d)
+  envi$P.Data$nd.P <- 0
+  envi$P.Data$nd.P[envi$P.Data$d.P > 0] <- as.factor(1)
+  
+  #Fundamental Data-------------------------------------------------------------------------------
+  #I should write them down into the B.Data table => more convenient
+  envi$BV$EPS_ttm <- rep(0)
+  for(i in c((nrow(envi$BV)-3):1)){
+    envi$BV$EPS_ttm[i] <- sum(envi$BV$NI[c((i+3):i)]) / envi$BV$Shares[i] 
+  }
+  envi$BV$d.BPS_E <- c((ts(envi$BV$BPS_E) - lag(ts(envi$BV$BPS_E)))/lag(ts(envi$BV$BPS_E)),0)
+  envi$BV$d.EPS_ttm <- c((ts(envi$BV$EPS_ttm) - lag(ts(envi$BV$EPS_ttm)))/lag(ts(envi$BV$EPS_ttm)),0)
+  
+  envi$B.Data <- data.table(ts(envi$BV$BV_E, start = start_d, frequency = 4))
+  colnames(envi$B.Data) <- c("BV_E")
+  #envi$B.Data$BV_D <- ts(rev(envi$BV$BV_D), start = c(1990, 1), frequency = 4)
+  envi$B.Data$BV_T <- ts(rev(envi$BV$BV_T), start = start_d, frequency = 4)
+  envi$B.Data$BPS_E <- ts(rev(envi$BV$BPS_E), start = start_d, frequency = 4)
+  envi$B.Data$BPS_D <- ts(envi$BV$BPS_D, start = start_d, frequency = 4)
+  envi$B.Data$BPS_T <- ts(rev(envi$BV$BPS_T), start = start_d, frequency = 4)
+  envi$B.Data$d.BPS_E <- ts(rev(envi$BV$d.BPS_E), start = start_d, frequency = 4)
+  
+  #PB-----------------------------------------------------------------------------------------
+  envi$Ratio.PB <- data.table(ts(envi$P.Data$P / envi$B.Data$BPS_E, start = start_d, frequency = 4))
+  colnames(envi$Ratio.PB) <- c("PB")
+  
+  envi$Ratio.PB$d.PB <- ts(c(NA, envi$Ratio.PB$PB - lag(envi$Ratio.PB$PB, -1)), start = start_d, frequency = 4)
+  envi$Ratio.PB$d.PB[is.nan(envi$Ratio.PB$d.PB)] <- NA
+  envi$Ratio.PB$d.PB[is.infinite(envi$Ratio.PB$d.PB)] <- NA
+  
+  envi$Ratio.PB$d2.PB <- ts(c(rep(NA, 2), envi$Ratio.PB$PB - lag(envi$Ratio.PB$PB, -2)), start = start_d, frequency = 4)
+  envi$Ratio.PB$d2.PB[is.nan(envi$Ratio.PB$d.PB)] <- NA
+  envi$Ratio.PB$d2.PB[is.infinite(envi$Ratio.PB$d.PB)] <- NA
+  
+  envi$Ratio.PB$d4.PB <- ts(c(rep(NA, 4), envi$Ratio.PB$PB - lag(envi$Ratio.PB$PB, -4)), start = start_d, frequency = 4)
+  envi$Ratio.PB$d4.PB[is.nan(envi$Ratio.PB$d.PB)] <- NA
+  envi$Ratio.PB$d4.PB[is.infinite(envi$Ratio.PB$d.PB)] <- NA
+  
+  envi$Ratio.PB$d.PB.MA <- ts(c(rep(NA, 7), rollmean(envi$Ratio.PB$d.PB, k = 8)), start = start_d, frequency = 4)
+}
