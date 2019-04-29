@@ -7,7 +7,7 @@ MSFT$MV <- read_excel("Data_Eikon/American_Electronics/Microsoft.xlsx",
                       sheet = "Prices", col_types = c("date", 
                                                       "numeric"))
 
-import(MSFT, "1986-03-13", "/1990-03-29", 12017)
+import(MSFT, start_d = c(1990, 1), end_d = c(2018, 4), c(1987, 1))
  
 #AAPL---------------------------------------------------------------------------------------------
 AAPL <- new.env()
@@ -22,7 +22,7 @@ AAPL$BV <- read_excel("Data_Eikon/American_Electronics/Apple.xlsx",
 P_st_da <- "1980-12-12"
 BV_st_da <- "/1989-09-28"
 day_c <- 13934
-import(AAPL, P_start_date = P_st_da, BV_start_date = BV_st_da, count_of_days = day_c)
+import(AAPL, start_d = c(1990, 1), end_d = c(2018, 4), start_p = c(1981, 1))
 #p.overview(AAPL)
 
 #IBM---------------------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ IBM$BV <- read_excel("Data_Eikon/American_Electronics/IBM.xlsx",
 P_st_da <- "1980-03-17"
 BV_st_da <- "/1989-12-30"
 day_c <- 14204
-import(IBM, P_start_date = P_st_da, BV_start_date = BV_st_da, count_of_days = day_c)
+import(IBM, start_d = c(1990, 1), end_d = c(2018, 4), start_p = c(1981, 1))
 
 #ORCL---------------------------------------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ ORCL$BV <- read_excel("Data_Eikon/American_Electronics/Oracle.xlsx",
 P_st_da <- "1986-03-12"
 BV_st_da <- "/1990-05-30"
 day_c <- 12018
-import(ORCL, P_start_date = P_st_da, BV_start_date = BV_st_da, count_of_days = day_c)
+import(ORCL, start_d = c(1990, 2), end_d = c(2018, 4), start_p = c(1987, 1))
 
 
 

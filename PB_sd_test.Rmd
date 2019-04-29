@@ -1,6 +1,19 @@
-P_start_date = "1986-03-01"
-count_of_days = 396
-BV_start_date = "/1990-03-29"
+---
+title: "PB_sd_test"
+runtime: shiny
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(xts)
+library(forecast)
+#library(aTSA)
+library(tseries)
+library(ggplot2)
+#library(xlsx)
+library(data.table)
 
 MSFT <- new.env()
 MSFT$BV <- read_excel("Data_Eikon/American_Electronics/Microsoft.xlsx", 
@@ -28,13 +41,9 @@ MSFT$P.Data_pre$d.P[is.infinite(MSFT$P.Data_pre$d.P)] <- NA
 MSFT$P.Data <- data.table(window(MSFT$P.Data_pre$P, start = c(1990, 1)))
 colnames(MSFT$P.Data) <- c("P")
 MSFT$P.Data$d.P <- window(MSFT$P.Data_pre$d.P, start = c(1990, 1))
-MSFT$P.Data$nd.P <- 0
+MSFT$P.Data$nd.P <- 0 #factor(0, levels = c(0, 1), labels = c(0, 1))
 MSFT$P.Data$nd.P[MSFT$P.Data$d.P > 0] <- as.factor(1)
 
-adf.test(MSFT$P.Data$P)
-(P.model <- ets(window(MSFT$P.Data$P, end = c(2000, 1)), opt.crit = "amse", nmse = 1))
-(P.model <- auto.arima(window(MSFT$P.Data$P, end = c(2000, 2)), stationary = TRUE))
-plot(forecast(P.model))
 #Fundamental Data-------------------------------------------------------------------------------
 #I should write them down into the B.Data table => more convenient
 MSFT$BV$EPS_ttm <- rep(0)
@@ -53,16 +62,10 @@ MSFT$B.Data$BPS_D <- ts(MSFT$BV$BPS_D, start = c(1990, 1), frequency = 4)
 MSFT$B.Data$BPS_T <- ts(rev(MSFT$BV$BPS_T), start = c(1990, 1), frequency = 4)
 MSFT$B.Data$d.BPS_E <- ts(rev(MSFT$BV$d.BPS_E), start = c(1990, 1), frequency = 4)
 
-adf.test(MSFT$B.Data$BPS_E)
-(B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(2000, 1), opt.crit = "mse")))
-(B.model <- auto.arima(window(MSFT$B.Data$BPS_E, end = c(2000, 1))))
-plot(forecast(B.model))
 #PB-----------------------------------------------------------------------------------------
 MSFT$Ratio.PB <- data.table(ts(MSFT$P.Data$P / MSFT$B.Data$BPS_E, start = c(1990, 1), frequency = 4))
 colnames(MSFT$Ratio.PB) <- c("PB")
-plot(MSFT$Ratio.PB$PB)
 
-adf.test((MSFT$Ratio.PB$PB-MSFT$Ratio.PB$PB[1]))
 
 MSFT$Ratio.PB$d.PB <- ts(c(NA, MSFT$Ratio.PB$PB - lag(MSFT$Ratio.PB$PB, -1)), start = c(1990, 1), frequency = 4)
 MSFT$Ratio.PB$d.PB[is.nan(MSFT$Ratio.PB$d.PB)] <- NA
@@ -75,6 +78,74 @@ MSFT$Ratio.PB$d2.PB[is.infinite(MSFT$Ratio.PB$d.PB)] <- NA
 MSFT$Ratio.PB$d4.PB <- ts(c(rep(NA, 4), MSFT$Ratio.PB$PB - lag(MSFT$Ratio.PB$PB, -4)), start = c(1990, 1), frequency = 4)
 MSFT$Ratio.PB$d4.PB[is.nan(MSFT$Ratio.PB$d.PB)] <- NA
 MSFT$Ratio.PB$d4.PB[is.infinite(MSFT$Ratio.PB$d.PB)] <- NA
+```
+
+This R Markdown document is made interactive using Shiny. Unlike the more traditional workflow of creating static reports, you can now create documents that allow your readers to change the assumptions underlying your analysis and see the results immediately. 
+
+To learn more, see [Interactive Documents](http://rmarkdown.rstudio.com/authoring_shiny.html).
+
+## Inputs and Outputs
+
+You can embed Shiny inputs and outputs in your document. Outputs are automatically updated whenever inputs change.  This demonstrates how a standard R plot can be made interactive by wrapping it in the Shiny `renderPlot` function. The `selectInput` and `sliderInput` functions create the input widgets used to drive the plot.
+
+```{r eruptions, echo=FALSE}
+inputPanel(
+  
+  
+  sliderInput("start", label = "Bandwidth adjustment:",
+              min = 1990, max = 2018, value = 1990, step = 0.25),
+  sliderInput("end", label = "Bandwidth adjustment:",
+              min = 1990, max = 2018, value = 2000, step = 0.25)
+)
+
+renderPlot({
+  sta <- input$start
+  en <- input$end
+  par(mfrow = c(1, 2))
+  plot(window(MSFT$P.Data$P ,start = c(sta), end = c(en)))
+  plot(window(MSFT$B.Data$BPS_E ,start = c(sta), end = c(en)))
+})
+renderPlot({
+  sta <- input$start
+  en <- input$end
+  
+  plot(window(MSFT$Ratio.PB$PB, start = c(sta), end = c(en)))
+  s <- MSFT$Ratio.PB$PB[1] + 2.851944 * sqrt(c(1:length(MSFT$Ratio.PB$PB)))
+  time <- ts(s, start = c(1990, 1))
+  lines(time, col = c("orange"))
+  
+  s <- MSFT$Ratio.PB$PB[1] + 2.851944 * sqrt(2 *  c(1:length(MSFT$Ratio.PB$PB)))
+  time <- ts(s, start = c(1990, 1))
+  lines(time, col = c("red"))
+  
+  s <- MSFT$Ratio.PB$PB[1] - 2.851944 * sqrt(c(1:length(MSFT$Ratio.PB$PB)))
+  time <- ts(s, start = c(1990, 1))
+  lines(time, col = c("orange"))
+  
+  s <- MSFT$Ratio.PB$PB[1] - 2.851944 * sqrt(2 *  c(1:length(MSFT$Ratio.PB$PB)))
+  time <- ts(s, start = c(1990, 1))
+  lines(time, col = c("red"))
+})
+```
+
+## Embedded Application
+
+It's also possible to embed an entire Shiny application within an R Markdown document using the `shinyAppDir` function. This example embeds a Shiny application located in another directory:
+
+```{r tabsets, echo=FALSE}
+shinyAppDir(
+  system.file("examples/06_tabsets", package = "shiny"),
+  options = list(
+    width = "100%", height = 550
+  )
+)
+```
+
+Note the use of the `height` parameter to determine how much vertical space the embedded application should occupy.
+
+You can also use the `shinyApp` function to define an application inline rather then in an external directory.
+
+In all of R code chunks above the `echo = FALSE` attribute is used. This is to prevent the R code within the chunk from rendering in the document alongside the Shiny components.
 
 
-?factor
+

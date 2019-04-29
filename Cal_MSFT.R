@@ -1,287 +1,185 @@
 
 
-plot(MSFT$P_xts, col = c("black", "red", "green"), main = "MSFT$Price")
-par(mfrow = c(2,1))
-plot(MSFT$P_xts$d.P_MA, main = "MSFT: Change of the MA of the Price")
-plot(MSFT$P_xts$d.P, main = "MSFT: Change of Price")
-
-par(mfrow = c(1,1))
-
-plot.dens(MSFT$P_xts$d.P_MA, a = 2, title = c("Density of Price changes"))
-plot.ext(MSFT$P_xts$d.P_MA, 2, c("MSFT: Change of the MA of the Price"))
-
-par(mfrow = c(2,2), pch = 19)
-plot(MSFT$P_xts, col = c("black", "red", "green"), main = "MSFT$Price")
-plot(MSFT$P_xts$d.P_MA, main = "MSFT: Change of the MA of the Price")
-plot.dens(MSFT$P_xts$d.P_MA, a = 2, title = c("Density of Price changes"))
-p <- plot.ext(MSFT$P_xts$d.P_MA, 2, c("MSFT: Change of the MA of the Price"))
-#p <- addLegend("topright", legend.names = c("within 2 * sd", "outside the 2 * sd interval"), col = c("black", "green"), lty = c(1,1), lwd = c(2, 1), on = 1)
-p
 
 
-par(mfrow = c(2,1), pch = 19)
-extr_ind <- get.extrm_ind(MSFT$P_xts$d.P_MA)
-pp <- plot.xts(MSFT$Ratios.PB, main = c("PB"))
-pp <- addEventLines(xts(rep(NA, length(extr_ind[[1]])), order.by = extr_ind[[1]]), col = c(rgb(0, 255, 0, max = 255, alpha = 50)))
-pp <- addEventLines(xts(rep(NA, length(extr_ind[[2]])), order.by = extr_ind[[2]]), col = c(rgb(255, 0, 0, max = 255, alpha = 50)))
-pp
-plot.ext(MSFT$P_xts$d.P_MA, a = 2, title = c("Extrems of change in Prices"))
+#Dichotomes Merkmal für die Blase-----------------------
+MSFT$Ratio.PB$redAlert <- 0
+MSFT$Ratio.PB$redAlert[c(29:41)] <- 1
 
-#Simple PB Model---------------------------------------------------------------------------------------------------------------------------------------------
-MSFT$NivClean_Ind <- index(MSFT$Ratios.PB$NivCleaned[!is.na(MSFT$Ratios.PB$NivCleaned)])
+MSFT$Ratio.PB$redAlert <- ts(MSFT$Ratio.PB$redAlert, start = c(1990, 1), frequency = 4)
 
-PB_cor <- data.frame(matrix(NA, nrow = 730, ncol = 2))
-colnames(PB_cor) <- c("AIC", "BIC")
+plot(MSFT$Ratio.PB$PB)
+points(MSFT$Ratio.PB$PB, col = as.character(factor(MSFT$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
 
-data.xts <- xts(MSFT$Ratios.PB$NivCleaned[MSFT$NivClean_Ind], order.by = MSFT$NivClean_Ind)
-colnames(data.xts) <- c("PB")
-data.xts$P <- MSFT$P_xts$d.P_MA[MSFT$NivClean_Ind]
+plot(MSFT$P.Data$P)
+points(MSFT$P.Data$P, col = as.character(factor(MSFT$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
 
-#find the best fitting model
-for(i in c(1:730)){
-  model <- lm(data.xts$P ~ lag(data.xts$PB, i))
-  PB_cor$AIC[i] <- AIC(model)
-  PB_cor$BIC[i] <- BIC(model)
+#WIP mit I(PB)--------------------------------------
+MSFT$Ratio.PB$d.PB.MA <- ts(c(rep(NA, 7), rollmean(MSFT$Ratio.PB$d.PB, k = 8)), start = c(1990, 1), frequency = 4) 
+
+plot(MSFT$Ratio.PB$d.PB)
+lines(MSFT$Ratio.PB$d2.PB, col = c("orange"))
+lines(MSFT$Ratio.PB$d4.PB, col = c("red"))
+#lines(ts(c(rep(NA, 7), rollmean(MSFT$Ratio.PB$d.PB, k = 8)), start = c(1990, 1), frequency = 4), col = c("orange"))
+#lines(ts(c(rep(NA, 11), rollmean(MSFT$Ratio.PB$d.PB, k = 12)), start = c(1990, 1), frequency = 4), col = c("red"))
+#lines(ts(c(rep(NA, 15), rollmean(MSFT$Ratio.PB$d.PB, k = 16)), start = c(1990, 1), frequency = 4), col = c("green"))
+abline(h = 0)
+plot.dens(MSFT$Ratio.PB$d.PB, title = c("Density"), plot.norm = TRUE, plot.lines = FALSE)
+
+#PB mit sd schätzer über die Zeit
+par(mfrow = c(2, 1))
+plot(window(MSFT$P.Data$P, end = c(2001, 1)))
+plot(window(MSFT$Ratio.PB$PB, end = c(2001, 1)))
+lines(window(ts(MSFT$Ratio.PB$PB[1] + sqrt(9.144297* c(1:length(MSFT$Ratio.PB$PB))), start = c(1990, 1)), col = c("orange")), end = c(2001, 1))
+lines(window(ts(MSFT$Ratio.PB$PB[1] + sqrt(9.144297 * 2 *  c(1:length(MSFT$Ratio.PB$PB))), start = c(1990, 1)), col = c("red")), end = c(2001, 1))
+lines(window(ts(MSFT$Ratio.PB$PB[1] - sqrt(9.144297* c(1:length(MSFT$Ratio.PB$PB))), start = c(1990, 1)), col = c("orange")), end = c(2001, 1))
+lines(window(ts(MSFT$Ratio.PB$PB[1] - sqrt(9.144297 * 2 *  c(1:length(MSFT$Ratio.PB$PB))), start = c(1990, 1)), col = c("red")), end = c(2001, 1))
+par(mfrow = c(1, 1))
+
+
+#PB Forecast
+
+(P.model <- ets(window(MSFT$P.Data$P, end = c(1999, 2)), opt.crit = "mae"))
+P.model <- ets(window(MSFT$P.Data$P, end = c(1999, 2)), model = "MAN", alpha = 0.999, beta = 0.2508)
+plot(forecast(P.model))
+
+(B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(1999, 2)), opt.crit = "mae"))
+B.model <- ets(window(MSFT$B.Data$BPS_E, end =  c(1999, 2)), model = "MAN", alpha = 0.7465, beta = 0.7012)
+plot(forecast(B.model))
+
+
+PB.forecast <- ts((forecast(P.model)$mean / forecast(B.model)$mean), start = c(2000, 2), frequency = 4)
+plot(MSFT$Ratio.PB$PB)
+lines(PB.forecast, col = c("red"))
+
+
+
+P.a <- 0.785
+P.b <- 0.2945
+B.a <- 0.3893
+B.b <- 0.3893
+mod <- "MAN"
+MSFT$Ratio.PB$d.PB.forecast <- NA
+MSFT$P.Data$P.forecast <- NA
+MSFT$B.Data$B.forecast <- NA
+for(i in c(4:115)){
+  P.model <- ets(window(MSFT$P.Data$P, end = c(1990 + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
+  B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(1990 + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
+  PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
+  MSFT$Ratio.PB$d.PB.forecast[i] <- PB.forecast[5] - PB.forecast[1]
+  MSFT$P.Data$P.forecast[i+1] <- forecast(P.model)$mean[1]
+  MSFT$B.Data$B.forecast[i+1] <- forecast(B.model)$mean[1]
 }
 
-(best_i <- order(PB_cor$AIC)[1])
-(order(PB_cor$BIC)[1])
+MSFT$P.Data$P.forecast <- ts(MSFT$P.Data$P.forecast, start = c(1990, 1), frequency = 4)
+MSFT$B.Data$B.forecast <- ts(MSFT$B.Data$B.forecast, start = c(1990, 1), frequency = 4)
+MSFT$Ratio.PB$PB.forecast <- MSFT$P.Data$P.forecast / MSFT$B.Data$B.forecast
 
-par(mfrow = c(1, 1))
-plot(PB_cor$AIC, type = c("l"), main = c("AIC and BIC"))
-lines(PB_cor$BIC, col = c("orange"))
-abline(v = best_i)
+plot(MSFT$P.Data$P)
+lines(MSFT$P.Data$P.forecast, col = c("orange"))
+#lines(ts(MSFT$P.Data$P - MSFT$P.Data$P.forecast, start = c(1990, 1), frequency = 4), col = c("red"))
+lines(c(NA, test[,1]), col = c("green"))
 
-#fitting of the best the model with the lowest AIC/BIC
-data.xts$PB <- lag(MSFT$Ratios.PB$NivCleaned[MSFT$NivClean_Ind], 65)
-model <- lm(data.xts$P ~ data.xts$PB, na.action = na.exclude)
-summary(model)
+plot(MSFT$Ratio.PB$PB)
+lines(MSFT$Ratio.PB$PB.forecast, col = c("orange"))
 
-AIC(model)
-BIC(model)
+result <- data.table(matrix(NA, nrow = 116, ncol = 7))
+colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5")
+result$time <- seq(from = 1990, length.out =  116, by = 0.25)
 
-plot(ts(MSFT$P_xts$d.P_MA[MSFT$NivClean_Ind]), main = c("Fitted Values"))
-lines(c(rep(NA, 65), ts(model$fitted.values)), col = c("red"))
+result.fitted <- data.table(matrix(NA, nrow = 116, ncol = 4))
+colnames(result.fitted) <- c("trend2", "trend3", "trend4", "trend5")
+result.fitted$trend2 <- MSFT$Ratio.PB$PB
+result.fitted$trend3 <- MSFT$Ratio.PB$PB
+result.fitted$trend4 <- MSFT$Ratio.PB$PB
+result.fitted$trend5 <- MSFT$Ratio.PB$PB
 
-#Residuals
-plot.dens(as.numeric(model$residuals), title = c("Density of Residuals"), plot.norm = TRUE, plot.lines = FALSE)
-
-par(mfrow = c(1, 2))
-Acf(as.numeric(model$residuals[!is.na(model$residuals)]), main = c("ACF: Residuals"))
-Pacf(as.numeric(model$residuals[!is.na(model$residuals)]), main = c("PACF: Residuals"))
-par(mfrow = c(1, 1))
-
-(model.autoarima <- auto.arima(ts(model$residuals[!is.na(model$residuals)])))
-
-#plot(ts(model$residuals[!is.na(model$residuals)]), main = c("Residuals"))
-#lines(model.autoarima$fitted, col = c("red"))
-
-(model.stationary <- auto.arima(ts(model$residuals[!is.na(model$residuals)]), d = 0))
-
-#plot(ts(model$residuals[!is.na(model$residuals)]), main = c("Residuals"))
-#lines(model.stationary$fitted, col = c("red"))
-
-#ADL----------------------------------------------------------------------------------------
-
-MSFT$NivClean_Ind <- index(MSFT$Ratios.PB$NivCleaned[!is.na(MSFT$Ratios.PB$NivCleaned)])
-
-AIC_BIC <- data.frame(matrix(NA, nrow = 730, ncol = 2))
-colnames(AIC_BIC) <- c("AIC", "BIC")
-
-data.xts <- xts(MSFT$Ratios.PB$NivCleaned[MSFT$NivClean_Ind], order.by = MSFT$NivClean_Ind)
-colnames(data.xts) <- c("PB")
-data.xts$P <- MSFT$P_xts$d.P_MA[MSFT$NivClean_Ind]
-
-#Test for the stationary requirement of P and PB
-par(mfrow = c(2, 2))
-acf(data.xts$P, main = c("ACF: P"))
-pacf(data.xts$P, main = c("PACF: P"))
-acf(data.xts$PB, main = c("ACF: PB"))
-pacf(data.xts$PB, main = c("PACF: PB"))
-
-adf.test(data.xts$P)
-kpss.test(data.xts$P)
-data.xts$IP <- data.xts$P-lag(data.xts$P, 1)
-#data.xts$IP2 <- data.xts$IP-lag(data.xts$IP, 1)
-#data.xts$IP3 <- data.xts$IP2-lag(data.xts$IP2, 1)
-
-#(aut.arim <- auto.arima(ts(data.xts$IP)))
-adf.test(data.xts$IP[!is.na(data.xts$IP)])
-kpss.test(data.xts$IP[!is.na(data.xts$IP)])
-par(mfrow = c(1, 2))
-acf(data.xts$IP, na.action = na.exclude, main = c("ACF: I(PB)"))
-pacf(data.xts$IP, na.action = na.exclude, main = c("PACF: I(PB)"))
-par(mfrow = c(1, 1))
-
-adf.test(data.xts$PB)
-kpss.test(data.xts$PB)
-data.xts$IPB <- data.xts$PB-lag(data.xts$PB, 1)
-adf.test(data.xts$IPB)
-
-
-#Fitting of the Model
-#model <- lm(data.xts$P ~ data.xts$IPB + lag(data.xts$IPB, 1) + lag(data.xts$IPB, 2) + lag(data.xts$P, 1) + lag(data.xts$P, 2))
-model <- lm(data.xts$P ~ data.xts$PB + lag(data.xts$PB, 1) + lag(data.xts$PB, 2) + lag(data.xts$P, 1) + lag(data.xts$P, 2))
-summary(model)
-AIC(model)
-BIC(model)
-
-par(mfrow = c(1, 1))
-plot.data <- data.xts$P
-colnames(plot.data) <- c("P")
-#plot.data$fit <- c(rep(NA, 3), model$fitted.values)
-plot.data$fit <- model$fitted.values
-#plot.data$res <- c(rep(NA, 3), abs(model$residuals))
-plot(plot.data["1990/2000"], type = c("l"), col = c("black", "orange", "blue"), main = c("Fitted Values"))
-plot(plot.data["2000/2010"], type = c("l"), col = c("black", "orange", "blue"), main = c("Fitted Values"))
-plot(plot.data["2010/2019"], type = c("l"), col = c("black", "orange", "blue"), main = c("Fitted Values"))
-#plot(c(rep(NA, 3), abs(model$residuals)), type = c("l"), col = c("blue"), main = c("Res"))
-
-#Residuals
-plot.dens(as.numeric(model$residuals), title = c("Density of Residuals"), plot.norm = TRUE, plot.lines = FALSE)
-par(mfrow = c(1, 2))
-acf(model$residuals, main = c("ACF: Residuen"))
-pacf(model$residuals, main = c("PACF: Residuen"))
-par(mfrow = c(1, 1))
-plot.data$res <- model$residuals
-plot(plot.data$res)
-plot(ts(plot.data$fit), ts(plot.data$res))
-plot(ts(plot.data$fit), ts(plot.data$res^2))
-bptest(model)
-resettest(model)
-
-
-
-
-#AR(2)-----------------------------------------------------------------------------------------------------
-MSFT$NivClean_Ind <- index(MSFT$Ratios.PB$NivCleaned[!is.na(MSFT$Ratios.PB$NivCleaned)])
-
-AIC_BIC <- data.frame(matrix(NA, nrow = 730, ncol = 2))
-colnames(AIC_BIC) <- c("AIC", "BIC")
-
-data.xts <- xts(MSFT$Ratios.PB$NivCleaned[MSFT$NivClean_Ind], order.by = MSFT$NivClean_Ind)
-colnames(data.xts) <- c("PB")
-data.xts$P <- MSFT$P_xts$d.P_MA[MSFT$NivClean_Ind]
-
-model <- lm(data.xts$P ~ lag(data.xts$PB, 65) + lag(data.xts$PB, 66) + lag(data.xts$PB, 67))
-summary(model)
-AIC(model)
-BIC(model)
-
-plot.data <- data.xts$P
-colnames(plot.data) <- c("P")
-plot.data$fit <- model$fitted.values
-plot(plot.data, type = c("l"), col = c("black", "orange"), main = c("Fitted Values"))
-
-acf(model$residuals)
-pacf(model$residuals)
-
-#Simple PE Model--------------------------------------------------------------------------------------------
-
-MSFT$NivClean_Ind <- index(MSFT$Ratios.PE$NivCleaned[!is.na(MSFT$Ratios.PE$NivCleaned)])
-
-AIC_BIC <- data.frame(matrix(NA, nrow = 730, ncol = 2))
-colnames(AIC_BIC) <- c("AIC", "BIC")
-
-PE_cor <- data.frame(matrix(NA, nrow = 730, ncol = 2))
-colnames(PE_cor) <- c("AIC", "BIC")
-
-data.xts <- xts(MSFT$Ratios.PE$NivCleaned[MSFT$NivClean_Ind], order.by = MSFT$NivClean_Ind)
-colnames(data.xts) <- c("PE")
-data.xts$P <- MSFT$P_xts$d.P_MA[MSFT$NivClean_Ind]
-
-#find the best fitting model
-for(i in c(1:730)){
-  model <- lm(data.xts$P ~ lag(data.xts$PE, i))
-  PE_cor$AIC[i] <- AIC(model)
-  PE_cor$BIC[i] <- BIC(model)
+for(i in c(4:111)){
+  data <- data.table(P = window(MSFT$P.Data$P, end = c(1990 + (i+4)*0.25)))
+  data$B <- window(MSFT$B.Data$BPS_E, end = c(1990 + (i+4)*0.25))
+  P.model <- ets(window(MSFT$P.Data$P, end = c(1990 + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
+  B.model <- ets(window(MSFT$B.Data$BPS_E, end = c(1990 + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
+  PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
+  data$PB <- window(MSFT$Ratio.PB$PB, end = c(1990 + (i+4)*0.25))
+  data$PB[c((i+1):(i+5))] <- PB.forecast[c(1:5)]
+  data$PB <- ts(data$PB, start = c(1990, 1), frequency = 4)
+  Poly.model3 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3), data = data)
+  Poly.model4 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4), data = data)
+  Poly.model5 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5), data = data)
+  
+  result$Intercept[i] <- summary(Poly.model)$coefficients[1,4]
+  result$trend1[i] <- summary(Poly.model3)$coefficients[2,4]
+  result$trend2[i] <- summary(Poly.model3)$coefficients[3,4]
+  result$trend3[i] <- summary(Poly.model3)$coefficients[4,4]
+  result$trend4[i] <- summary(Poly.model4)$coefficients[5,4]
+  result$trend5[i] <- summary(Poly.model5)$coefficients[6,4]
+  if(i < 50){
+    plot(MSFT$Ratio.PB$PB, main = c(1990 + (i-1)*0.25))
+    lines(ts(Poly.model$fitted.values, start = c(1990, 1), frequency = 4), col = c("red"))
+  }
+  
+  result.fitted$trend2[i] <- if(result$trend2[i] < 0.1) result.fitted$trend2[i] else NA
+  result.fitted$trend3[i] <- if(result$trend3[i] < 0.1) result.fitted$trend3[i] else NA
+  result.fitted$trend4[i] <- if(result$trend4[i] < 0.1) result.fitted$trend4[i] else NA
+  result.fitted$trend5[i] <- if(result$trend5[i] < 0.1) result.fitted$trend5[i] else NA
+  
+  
 }
 
-(best_i <- order(PE_cor$AIC)[1])
-(order(PE_cor$BIC)[1])
+result$Intercept <- ts(result$Intercept, start = c(1990, 1), frequency = 4)
+result$trend1 <- ts(result$trend1, start = c(1990, 1), frequency = 4)
+result$trend2 <- ts(result$trend2, start = c(1990, 1), frequency = 4)
+result$trend3 <- ts(result$trend3, start = c(1990, 1), frequency = 4)
+result$trend4 <- ts(result$trend4, start = c(1990, 1), frequency = 4)
+result$trend5 <- ts(result$trend5, start = c(1990, 1), frequency = 4)
 
-par(mfrow = c(1, 1))
-plot(PE_cor$AIC, type = c("l"), main = c("AIC and BIC"))
-lines(PE_cor$BIC, col = c("orange"))
-abline(v = best_i)
+plot(result$Intercept, ylim = c(0, 0.2))
+lines(result$trend1, col = c("red"))
+lines(result$trend2, col = c("green"))
+lines(result$trend3, col = c("orange"))
+#lines(result$trend4, col = c("yellow"))
+#lines(result$trend5, col = c("blue"))
+abline(v = c(1990:2020), col = c("grey"))
 
-#fitting of the best the model with the lowest AIC/BIC
-data.xts$PE <- lag(MSFT$Ratios.PE$NivCleaned[MSFT$NivClean_Ind], 52)
-model <- lm(data.xts$P ~ data.xts$PE, na.action = na.exclude)
-summary(model)
-
-AIC(model)
-BIC(model)
-par(mfrow = c(1, 1))
-plot(ts(MSFT$P_xts$d.P_MA[MSFT$NivClean_Ind]), main = c("Fitted Values"))
-lines(c(rep(NA, 52), ts(model$fitted.values)), col = c("red"))
-
-#residuals
-plot.dens(as.numeric(model$residuals), title = c("Density of Residuals"), plot.norm = TRUE, plot.lines = FALSE)
-
-par(mfrow = c(1, 2))
-Acf(as.numeric(model$residuals[!is.na(model$residuals)]), main = c("ACF: Residuals"))
-Pacf(as.numeric(model$residuals[!is.na(model$residuals)]), main = c("PACF: Residuals"))
-par(mfrow = c(1, 1))
-
-#ADL PE ----------------------------------------------------------------------------------------
-
-MSFT$NivClean_Ind <- index(MSFT$Ratios.PE$NivCleaned[!is.na(MSFT$Ratios.PE$NivCleaned)])
-
-AIC_BIC <- data.frame(matrix(NA, nrow = 730, ncol = 2))
-colnames(AIC_BIC) <- c("AIC", "BIC")
-
-data.xts <- xts(MSFT$Ratios.PE$NivCleaned[MSFT$NivClean_Ind], order.by = MSFT$NivClean_Ind)
-colnames(data.xts) <- c("PE")
-data.xts$P <- MSFT$P_xts$d.P_MA[MSFT$NivClean_Ind]
-
-#Test for the stationary requirement of P and PE
-par(mfrow = c(2, 2))
-acf(data.xts$P, main = c("ACF: P"))
-pacf(data.xts$P, main = c("PACF: P"))
-acf(data.xts$PE, main = c("ACF: PE"))
-pacf(data.xts$PE, main = c("PACF: PE"))
-
-adf.test(data.xts$P)
-kpss.test(data.xts$P)
-data.xts$IP <- data.xts$P-lag(data.xts$P, 1)
-#data.xts$IP2 <- data.xts$IP-lag(data.xts$IP, 1)
-#data.xts$IP3 <- data.xts$IP2-lag(data.xts$IP2, 1)
-
-#(aut.arim <- auto.arima(ts(data.xts$IP)))
-adf.test(data.xts$IP[!is.na(data.xts$IP)])
-kpss.test(data.xts$IP[!is.na(data.xts$IP)])
-par(mfrow = c(1, 2))
-acf(data.xts$IP, na.action = na.exclude, main = c("ACF: I(PE)"))
-pacf(data.xts$IP, na.action = na.exclude, main = c("PACF: I(PE)"))
+x11()
+par(mfrow = c(2, 1))
+#plot(result.fitted$trend2, ylim = c(0, 50), main = c("Trend 2"))
+#lines(MSFT$Ratio.PB$PB, col = c("grey"))
+plot(result.fitted$trend3, ylim = c(0, 50), main = c("Trend 3"))
+lines(MSFT$Ratio.PB$PB, col = c("grey"))
+plot(result.fitted$trend4, ylim = c(0, 50), main = c("Trend 4"))
+#lines(MSFT$Ratio.PB$PB, col = c("grey"))
+#plot(result.fitted$trend5, ylim = c(0, 50), main = c("Trend 5"))
+#lines(MSFT$Ratio.PB$PB, col = c("grey"))
 par(mfrow = c(1, 1))
 
-adf.test(data.xts$PE)
-kpss.test(data.xts$PE)
-data.xts$IPE <- data.xts$PE-lag(data.xts$PE, 1)
-adf.test(data.xts$IPE)
 
+View(result)
+MSFT$Ratio.PB$nd.PB <- 0
+MSFT$Ratio.PB$nd.PB[MSFT$Ratio.PB$d.PB.forecast > 0 & !is.na(MSFT$Ratio.PB$d.PB.forecast)] <- as.factor(1)
 
-#Fitting of the Model
-#model <- lm(data.xts$P ~ data.xts$IPE + lag(data.xts$IPE, 1) + lag(data.xts$IPE, 2) + lag(data.xts$P, 1) + lag(data.xts$P, 2))
-model <- lm(data.xts$P ~ data.xts$PE + lag(data.xts$PE, 1) + lag(data.xts$PE, 2) + lag(data.xts$P, 1) + lag(data.xts$P, 2))
-summary(model)
-AIC(model)
-BIC(model)
+plot(as.numeric(MSFT$Ratio.PB$PB), col = as.character(factor(MSFT$Ratio.PB$nd.PB, labels = c("red", "green"))), type = c("p"))
+lines(as.numeric(MSFT$Ratio.PB$PB))
 
-par(mfrow = c(1, 1))
-plot.data <- data.xts$P
-colnames(plot.data) <- c("P")
-plot.data$fit <- model$fitted.values
-#plot.data$res <- c(rep(NA, 3), abs(model$residuals))
-plot(plot.data["1990/2000"], type = c("l"), col = c("black", "orange", "blue"), main = c("Fitted Values"))
-plot(plot.data["2000/2010"], type = c("l"), col = c("black", "orange", "blue"), main = c("Fitted Values"))
-plot(plot.data["2010/2019"], type = c("l"), col = c("black", "orange", "blue"), main = c("Fitted Values"))
-#plot(c(rep(NA, 3), abs(model$residuals)), type = c("l"), col = c("blue"), main = c("Res"))
+plot(as.numeric(MSFT$P.Data$P), col = as.character(factor(MSFT$Ratio.PB$nd.PB, labels = c("red", "green"))), type = c("p"))
+lines(as.numeric(MSFT$P.Data$P))
 
-#Residuals
-plot.dens(as.numeric(model$residuals), title = c("Density of Residuals"), plot.norm = TRUE, plot.lines = FALSE)
-par(mfrow = c(1, 2))
-acf(model$residuals, main = c("ACF: Residuen"))
-pacf(model$residuals, main = c("PACF: Residuen"))
-par(mfrow = c(1, 1))
+fore <- function(x, h){
+  model <- ets(x, model = "MAN", alpha = 0.785, beta = 0.2945)
+  forecast(model, h = h)
+}
+test <- tsCV(MSFT$P.Data$P, fore, h = 2)
+plot(test)
+
+MSFT$Ratio.PB$MA.PB <- ts(c(rep(NA, 15), rollmean(MSFT$Ratio.PB$PB, k = 16)), start = c(1990, 1), frequency = 4)
+MSFT$Ratio.PB$GapP.B.MA <- (MSFT$Ratio.PB$PB - MSFT$Ratio.PB$MA.PB)/MSFT$Ratio.PB$MA.PB
+plot(MSFT$Ratio.PB$PB, ylim = c(-5, 50))
+lines(MSFT$Ratio.PB$MA.PB, col = c("red"))
+
+lines((MSFT$Ratio.PB$PB - MSFT$Ratio.PB$MA.PB)*10/MSFT$Ratio.PB$MA.PB, col = c("blue"))
+abline(h = 0)
+
+plot.dens(MSFT$Ratio.PB$GapP.B.MA, title = c("bla"), plot.norm = TRUE, plot.lines = TRUE)
+
