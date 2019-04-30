@@ -5,10 +5,16 @@
 #Dichotomes Merkmal für die Blase-----------------------
 MSFT$Ratio.PB$redAlert <- 0
 MSFT$Ratio.PB$redAlert[c(29:41)] <- 1
+MSFT$Ratio.PB$redAlert[c(64:75)] <- 1
 
 MSFT$Ratio.PB$redAlert <- ts(MSFT$Ratio.PB$redAlert, start = c(1990, 1), frequency = 4)
 
-plot(MSFT$Ratio.PB$PB)
+plot(as.numeric(MSFT$Ratio.PB$PB), type = c("l"))
+points(as.numeric(MSFT$Ratio.PB$PB), col = as.character(factor(MSFT$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
+abline(v = seq(from = 1, length.out = 116, by = 1), col = c("grey"))
+
+plot(MSFT$Ratio.PB$PB, type = c("l"))
 points(MSFT$Ratio.PB$PB, col = as.character(factor(MSFT$Ratio.PB$redAlert, labels = c("green", "red"))))
 abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
 
@@ -79,12 +85,12 @@ MSFT$Ratio.PB$PB.forecast <- MSFT$P.Data$P.forecast / MSFT$B.Data$B.forecast
 
 plot(MSFT$P.Data$P)
 lines(MSFT$P.Data$P.forecast, col = c("orange"))
-#lines(ts(MSFT$P.Data$P - MSFT$P.Data$P.forecast, start = c(1990, 1), frequency = 4), col = c("red"))
 lines(c(NA, test[,1]), col = c("green"))
 
 plot(MSFT$Ratio.PB$PB)
 lines(MSFT$Ratio.PB$PB.forecast, col = c("orange"))
 
+#sollte theoretisch ausgegliedert sein
 result <- data.table(matrix(NA, nrow = 116, ncol = 7))
 colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5")
 result$time <- seq(from = 1990, length.out =  116, by = 0.25)
@@ -97,6 +103,10 @@ result.fitted$trend3 <- MSFT$Ratio.PB$PB
 result.fitted$trend4 <- MSFT$Ratio.PB$PB
 result.fitted$trend5 <- MSFT$Ratio.PB$PB
 result.fitted$trend6 <- MSFT$Ratio.PB$PB
+
+MSFT$Ratio.PB$sig_tend3 <- 0
+MSFT$Ratio.PB$sig_tend4 <- 0
+MSFT$Ratio.PB$sig_tend5 <- 0
 
 for(i in c(4:111)){
   data <- data.table(P = window(MSFT$P.Data$P, end = c(1990 + (i+4)*0.25)))
@@ -122,6 +132,7 @@ for(i in c(4:111)){
   result$trend4[i] <- summary(Poly.model4)$coefficients[5,4]
   result$trend5[i] <- summary(Poly.model5)$coefficients[6,4]
   result$trend6[i] <- summary(Poly.model6)$coefficients[7,4]
+  
   if(i < 50){
     plot(MSFT$Ratio.PB$PB, main = c(1990 + (i-1)*0.25))
     lines(ts(Poly.model4$fitted.values, start = c(1990, 1), frequency = 4), col = c("red"))
@@ -129,10 +140,12 @@ for(i in c(4:111)){
   
   result.fitted$trend2[i] <- if(result$trend2[i] < 0.1) result.fitted$trend2[i] else NA
   result.fitted$trend3[i] <- if(result$trend3[i] < 0.1) result.fitted$trend3[i] else NA
+  MSFT$Ratio.PB$sig_tend3[i]<- if(result$trend3[i] < 0.1) 1 else 0
   result.fitted$trend4[i] <- if(result$trend4[i] < 0.1) result.fitted$trend4[i] else NA
+  MSFT$Ratio.PB$sig_tend4[i]<- if(result$trend4[i] < 0.1) 1 else 0
   result.fitted$trend5[i] <- if(result$trend5[i] < 0.1) result.fitted$trend5[i] else NA
+  MSFT$Ratio.PB$sig_tend5[i]<- if(result$trend5[i] < 0.1) 1 else 0
   result.fitted$trend6[i] <- if(result$trend6[i] < 0.1) result.fitted$trend6[i] else NA
-  
   
 }
 
@@ -143,7 +156,7 @@ result$trend3 <- ts(result$trend3, start = c(1990, 1), frequency = 4)
 result$trend4 <- ts(result$trend4, start = c(1990, 1), frequency = 4)
 result$trend5 <- ts(result$trend5, start = c(1990, 1), frequency = 4)
 result$trend6 <- ts(result$trend6, start = c(1990, 1), frequency = 4)
-
+#---------------------------------------------------------------------------------
 plot(result$Intercept, ylim = c(0, 0.2))
 lines(result$trend1, col = c("red"))
 lines(result$trend2, col = c("green"))
@@ -153,7 +166,7 @@ lines(result$trend3, col = c("orange"))
 abline(v = c(1990:2020), col = c("grey"))
 
 x11()
-par(mfrow = c(3, 2))
+par(mfrow = c(3, 2), lwd = 3)
 plot(MSFT$Ratio.PB$PB, col = c("grey"), ylim = c(0, 50), main = c("Trend 1"))
 lines(result.fitted$trend1, col = c("red"))
 plot(MSFT$Ratio.PB$PB, col = c("grey"), ylim = c(0, 50), main = c("Trend 2"))
@@ -167,6 +180,11 @@ lines(result.fitted$trend5, col = c("red"))
 plot(MSFT$Ratio.PB$PB, col = c("grey"), ylim = c(0, 50), main = c("Trend 6"))
 lines(result.fitted$trend6, col = c("red"))
 par(mfrow = c(1, 1))
+
+ftable(MSFT$Ratio.PB$sig_tend3, MSFT$Ratio.PB$redAlert)
+ftable(MSFT$Ratio.PB$sig_tend4, MSFT$Ratio.PB$redAlert)
+ftable(MSFT$Ratio.PB$sig_tend5, MSFT$Ratio.PB$redAlert)
+
 
 
 View(result)
