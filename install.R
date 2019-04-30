@@ -1,0 +1,6 @@
+install.packages("readxl")
+install.packages("xts")
+install.packages("forecast")
+install.packages("tseries")
+install.packages("ggplot2")
+install.packages("data.table")
