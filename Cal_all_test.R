@@ -1,5 +1,27 @@
 
+#PB Forecasterror
 
+#MSFT
+PB.CV(MSFT)
+MSFT$CV[order(MSFT$CV[,5])[1:5], ]
+
+PB.CV(MSFT, r.P.a = c(0.8, 0.95), r.P.b = c(0.05, 0.15), r.B.a = c(0.8, 0.95), r.B.b = c(0.05, 0.15), step = 0.01)
+MSFT$CV[order(MSFT$CV[,5])[1:5], ]
+
+#AAPL
+PB.CV(AAPL)
+AAPL$CV[order(AAPL$CV[,5])[1:5], ]
+
+PB.CV(MSFT, r.P.a = c(0.8, 0.95), r.P.b = c(0.05, 0.15), r.B.a = c(0.8, 0.95), r.B.b = c(0.025, 0.35), step = 0.01)
+MSFT$CV[order(MSFT$CV[,5])[1:5], ]
+
+#ORCL
+PB.CV(ORCL)
+ORCL$CV[order(ORCL$CV[,5])[1:5], ]
+
+#IBM
+PB.CV(IBM)
+IBM$CV[order(IBM$CV[,5])[1:5], ]
 
 
 MSFT.res <- fite.model(MSFT)

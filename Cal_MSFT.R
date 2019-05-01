@@ -214,3 +214,4 @@ abline(h = 0)
 
 plot.dens(MSFT$Ratio.PB$GapP.B.MA, title = c("bla"), plot.norm = TRUE, plot.lines = TRUE)
 
+
