@@ -233,8 +233,8 @@ import <- function(envi, start_d, end_d, start_p){
 
 fite.model <- function(envi, mod = "MAN", P.a = 0.785, P.b = 0.2945, B.a = 0.3893, B.b = 0.3893){
   l <- length(envi$Ratio.PB$PB)
-  result <- data.table(matrix(NA, nrow = l, ncol = 7))
-  colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5")
+  result <- data.table(matrix(NA, nrow = l, ncol = 8))
+  colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5", "trend6")
   result$time <- seq(to = 2018.75, length.out =  l, by = 0.25)
   
   result$fit_trend1 <- envi$Ratio.PB$PB
