@@ -1,18 +1,18 @@
-
+#DONT RUN!!!!!!--------------------------------------------------------
 #PB Forecasterror
 
 #MSFT
 PB.CV(MSFT)
 MSFT$CV[order(MSFT$CV[,5])[1:5], ]
 
-PB.CV(MSFT, r.P.a = c(0.8, 0.95), r.P.b = c(0.05, 0.15), r.B.a = c(0.8, 0.95), r.B.b = c(0.05, 0.15), step = 0.01)
+PB.CV(MSFT, r.P.a = c(0.88, 0.95), r.P.b = c(0.1, 0.15), r.B.a = c(0.85, 0.95), r.B.b = c(0.1, 0.15), step = 0.01)
 MSFT$CV[order(MSFT$CV[,5])[1:5], ]
 
 #AAPL
 PB.CV(AAPL)
 AAPL$CV[order(AAPL$CV[,5])[1:5], ]
 
-PB.CV(MSFT, r.P.a = c(0.8, 0.95), r.P.b = c(0.05, 0.15), r.B.a = c(0.8, 0.95), r.B.b = c(0.025, 0.35), step = 0.01)
+PB.CV(MSFT, r.P.a = c(0.85, 0.95), r.P.b = c(0.1, 0.15), r.B.a = c(0.85, 0.95), r.B.b = c(0.27, 0.35), step = 0.01)
 MSFT$CV[order(MSFT$CV[,5])[1:5], ]
 
 #ORCL
@@ -23,6 +23,8 @@ ORCL$CV[order(ORCL$CV[,5])[1:5], ]
 PB.CV(IBM)
 IBM$CV[order(IBM$CV[,5])[1:5], ]
 
+
+#Save to Run----------------------------------------------------------------------
 #MSFT Red Alert
 MSFT$Ratio.PB$redAlert <- 0
 MSFT$Ratio.PB$redAlert[c(29:41)] <- 1
@@ -88,20 +90,26 @@ abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
 MSFT.res <- fite.model(MSFT)
 plot.result(MSFT, MSFT.res)
 
-ftable(MSFT$Ratio.PB$sig_trend3, MSFT$Ratio.PB$redAlert)
-ftable(MSFT$Ratio.PB$sig_trend4, MSFT$Ratio.PB$redAlert)
-ftable(MSFT$Ratio.PB$sig_trend5, MSFT$Ratio.PB$redAlert)
+con.table(MSFT)
+
 
 #AAPL Cal
 AAPL.res <- fite.model(AAPL, P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.31)
 plot.result(AAPL, AAPL.res)
 
-ftable(AAPL$Ratio.PB$sig_trend3, AAPL$Ratio.PB$redAlert)
-ftable(AAPL$Ratio.PB$sig_trend4, AAPL$Ratio.PB$redAlert)
-ftable(AAPL$Ratio.PB$sig_trend5, AAPL$Ratio.PB$redAlert)
+con.table(AAPL)
 
-ORCL.res <- fite.model(ORCL)
+
+#ORCL cal
+ORCL.res <- fite.model(ORCL, P.a = 0.9, P.b = 0.01, B.a = 0.5, B.b = 0.21, sta = 1990.25)
 plot.result(ORCL, ORCL.res)
 
-IBM.res <- fite.model(IBM)
+con.table(ORCL)
+
+
+#IBM Cal
+IBM.res <- fite.model(IBM, P.a = 0.9, P.b = 0.01, B.a = 0.9, B.b = 0.01)
 plot.result(IBM, IBM.res)
+
+con.table(IBM)
+

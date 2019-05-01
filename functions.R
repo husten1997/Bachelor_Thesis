@@ -231,7 +231,7 @@ import <- function(envi, start_d, end_d, start_p){
   envi$Ratio.PB$d.PB.MA <- ts(c(rep(NA, 7), rollmean(envi$Ratio.PB$d.PB, k = 8)), start = start_d, frequency = 4)
 }
 
-fite.model <- function(envi, mod = "MAN", P.a = 0.785, P.b = 0.2945, B.a = 0.3893, B.b = 0.3893){
+fite.model <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.11, sta = 1990){
   l <- length(envi$Ratio.PB$PB)
   result <- data.table(matrix(NA, nrow = l, ncol = 8))
   colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5", "trend6")
@@ -249,14 +249,14 @@ fite.model <- function(envi, mod = "MAN", P.a = 0.785, P.b = 0.2945, B.a = 0.389
   envi$Ratio.PB$sig_trend5 <- 0
   
   for(i in c(4:(l-5))){
-    data <- data.table(P = window(envi$P.Data$P, end = c(1990 + (i+4)*0.25)))
-    data$B <- window(envi$B.Data$BPS_E, end = c(1990 + (i+4)*0.25))
-    P.model <- ets(window(envi$P.Data$P, end = c(1990 + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
-    B.model <- ets(window(envi$B.Data$BPS_E, end = c(1990 + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
+    data <- data.table(P = window(envi$P.Data$P, end = c(sta + (i+4)*0.25)))
+    data$B <- window(envi$B.Data$BPS_E, end = c(sta + (i+4)*0.25))
+    P.model <- ets(window(envi$P.Data$P, end = c(sta + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
+    B.model <- ets(window(envi$B.Data$BPS_E, end = c(sta + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
     PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
-    data$PB <- window(envi$Ratio.PB$PB, end = c(1990 + (i+4)*0.25))
+    data$PB <- window(envi$Ratio.PB$PB, end = c(sta + (i+4)*0.25))
     data$PB[c((i+1):(i+5))] <- PB.forecast[c(1:5)]
-    data$PB <- ts(data$PB, start = c(1990, 1), frequency = 4)
+    data$PB <- ts(data$PB, start = sta, frequency = 4)
     
     Poly.model1 <- tslm(PB ~ I(trend), data = data)
     Poly.model2 <- tslm(PB ~ I(trend) + I(trend^2), data = data)
@@ -285,20 +285,20 @@ fite.model <- function(envi, mod = "MAN", P.a = 0.785, P.b = 0.2945, B.a = 0.389
     
   }
   
-  result$Intercept <- ts(result$Intercept, start = c(1990, 1), frequency = 4)
-  result$trend1 <- ts(result$trend1, start = c(1990, 1), frequency = 4)
-  result$trend2 <- ts(result$trend2, start = c(1990, 1), frequency = 4)
-  result$trend3 <- ts(result$trend3, start = c(1990, 1), frequency = 4)
-  result$trend4 <- ts(result$trend4, start = c(1990, 1), frequency = 4)
-  result$trend5 <- ts(result$trend5, start = c(1990, 1), frequency = 4)
-  result$trend6 <- ts(result$trend6, start = c(1990, 1), frequency = 4)
+  result$Intercept <- ts(result$Intercept, start = sta, frequency = 4)
+  result$trend1 <- ts(result$trend1, start = sta, frequency = 4)
+  result$trend2 <- ts(result$trend2, start = sta, frequency = 4)
+  result$trend3 <- ts(result$trend3, start = sta, frequency = 4)
+  result$trend4 <- ts(result$trend4, start = sta, frequency = 4)
+  result$trend5 <- ts(result$trend5, start = sta, frequency = 4)
+  result$trend6 <- ts(result$trend6, start = sta, frequency = 4)
   
-  result$fit_trend1 <- ts(result$fit_trend1, start = c(1990, 1), frequency = 4)
-  result$fit_trend2 <- ts(result$fit_trend2, start = c(1990, 1), frequency = 4)
-  result$fit_trend3 <- ts(result$fit_trend3, start = c(1990, 1), frequency = 4)
-  result$fit_trend4 <- ts(result$fit_trend4, start = c(1990, 1), frequency = 4)
-  result$fit_trend5 <- ts(result$fit_trend5, start = c(1990, 1), frequency = 4)
-  result$fit_trend6 <- ts(result$fit_trend6, start = c(1990, 1), frequency = 4)
+  result$fit_trend1 <- ts(result$fit_trend1, start = sta, frequency = 4)
+  result$fit_trend2 <- ts(result$fit_trend2, start = sta, frequency = 4)
+  result$fit_trend3 <- ts(result$fit_trend3, start = sta, frequency = 4)
+  result$fit_trend4 <- ts(result$fit_trend4, start = sta, frequency = 4)
+  result$fit_trend5 <- ts(result$fit_trend5, start = sta, frequency = 4)
+  result$fit_trend6 <- ts(result$fit_trend6, start = sta, frequency = 4)
   
   return(result)
 }
@@ -306,17 +306,65 @@ fite.model <- function(envi, mod = "MAN", P.a = 0.785, P.b = 0.2945, B.a = 0.389
 plot.result <- function(envi, result){
   x11()
   par(mfrow = c(3, 2), lwd = 3)
-  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = c(0, 50), main = c("Trend 1"))
+  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = range(envi$Ratio.PB$PB), main = c("Trend 1"))
   lines(result$fit_trend1, col = c("red"))
-  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = c(0, 50), main = c("Trend 2"))
+  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = range(envi$Ratio.PB$PB), main = c("Trend 2"))
   lines(result$fit_trend2, col = c("red"))
-  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = c(0, 50), main = c("Trend 3"))
+  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = range(envi$Ratio.PB$PB), main = c("Trend 3"))
   lines(result$fit_trend3, col = c("red"))
-  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = c(0, 50), main = c("Trend 4"))
+  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = range(envi$Ratio.PB$PB), main = c("Trend 4"))
   lines(result$fit_trend4, col = c("red"))
-  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = c(0, 50), main = c("Trend 5"))
+  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = range(envi$Ratio.PB$PB), main = c("Trend 5"))
   lines(result$fit_trend5, col = c("red"))
-  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = c(0, 50), main = c("Trend 6"))
+  plot(envi$Ratio.PB$PB, col = c("grey"), ylim = range(envi$Ratio.PB$PB), main = c("Trend 6"))
   lines(result$fit_trend6, col = c("red"))
   par(mfrow = c(1, 1))
+}
+
+PB.CV <- function(envi, r.P.a = c(0.5, 0.99), r.P.b = c(0.01, 0.5), r.B.a = c(0.5, 0.99), r.B.b = c(0.01, 0.5), step = 0.1){
+  envi$CV <- matrix(NA, nrow = 0, ncol = 5)
+  l <- length(envi$Ratio.PB$PB)
+  for(P.a in seq(from = r.P.a[1], to = r.P.a[2], by = step)){
+    for(P.b in seq(from = r.P.b[1], to = r.P.b[2], by = step)){
+      for(B.a in seq(from = r.B.a[1], to = r.B.a[2], by = step)){
+        for(B.b in seq(from = r.B.b[1], to = r.B.b[2], by = step)){
+          print(c(P.a, P.b, B.a, B.b))
+          #system.time(
+          {
+            e <- rep(NA, l)
+            tryCatch({
+              for(i in c(4:(l-5))){
+                P.model <- ets(window(envi$P.Data$P, end = c(1990 + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
+                B.model <- ets(window(envi$B.Data$BPS_E, end = c(1990 + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
+                PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
+                e[i] <- (envi$Ratio.PB$PB[i] - PB.forecast[1])
+              }
+            }, error = function(a){
+              e <- NA
+            })
+            mse <- mean(e^2, na.rm = TRUE)
+            envi$CV <- rbind(envi$CV, c(P.a, P.b, B.a, B.b, mse))
+          }
+          #)
+          
+          
+        }
+      }
+    }
+  }
+}
+
+con.table <- function(envi){
+  print("Trend 3")
+  print(prop.table(ftable(envi$Ratio.PB$sig_trend3, envi$Ratio.PB$redAlert)))
+  print(sum(prop.table(ftable(envi$Ratio.PB$sig_trend3, envi$Ratio.PB$redAlert))[c(1,4)]))
+  print("------------------")
+  print("Trend 4")
+  print(prop.table(ftable(envi$Ratio.PB$sig_trend4, envi$Ratio.PB$redAlert)))
+  print(sum(prop.table(ftable(envi$Ratio.PB$sig_trend4, envi$Ratio.PB$redAlert))[c(1,4)]))
+  print("------------------")
+  print("Trend 5")
+  print(prop.table(ftable(envi$Ratio.PB$sig_trend5, envi$Ratio.PB$redAlert)))
+  print( sum(prop.table(ftable(envi$Ratio.PB$sig_trend5, envi$Ratio.PB$redAlert))[c(1,4)]))
+  print("------------------")
 }

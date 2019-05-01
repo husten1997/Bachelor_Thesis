@@ -1,9 +1,10 @@
-envi <- MSFT
+start <- 1990.25
+envi <- ORCL
 mod = "MAN"
-P.a <- 0.785
-P.b <- 0.2945
-B.a <- 0.3893
-B.b <- 0.3893
+P.a <- 0.9
+P.b <- 0.01
+B.a <- 0.5
+B.b <- 0.21
 
 l <- length(envi$Ratio.PB$PB)
 result <- data.table(matrix(NA, nrow = l, ncol = 8))
@@ -22,14 +23,14 @@ envi$Ratio.PB$sig_trend4 <- 0
 envi$Ratio.PB$sig_trend5 <- 0
 
 for(i in c(4:(l-5))){
-  data <- data.table(P = window(envi$P.Data$P, end = c(1990 + (i+4)*0.25)))
-  data$B <- window(envi$B.Data$BPS_E, end = c(1990 + (i+4)*0.25))
-  P.model <- ets(window(envi$P.Data$P, end = c(1990 + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
-  B.model <- ets(window(envi$B.Data$BPS_E, end = c(1990 + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
+  data <- data.table(P = window(envi$P.Data$P, end = c(start + (i+4)*0.25)))
+  data$B <- window(envi$B.Data$BPS_E, end = c(start + (i+4)*0.25))
+  P.model <- ets(window(envi$P.Data$P, end = c(start + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
+  B.model <- ets(window(envi$B.Data$BPS_E, end = c(start + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
   PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
-  data$PB <- window(envi$Ratio.PB$PB, end = c(1990 + (i+4)*0.25))
+  data$PB <- window(envi$Ratio.PB$PB, end = c(start + (i+4)*0.25))
   data$PB[c((i+1):(i+5))] <- PB.forecast[c(1:5)]
-  data$PB <- ts(data$PB, start = c(1990, 1), frequency = 4)
+  data$PB <- ts(data$PB, start = c(start, 1), frequency = 4)
   
   Poly.model1 <- tslm(PB ~ I(trend), data = data)
   Poly.model2 <- tslm(PB ~ I(trend) + I(trend^2), data = data)
@@ -58,17 +59,17 @@ for(i in c(4:(l-5))){
   
 }
 
-result$Intercept <- ts(result$Intercept, start = c(1990, 1), frequency = 4)
-result$trend1 <- ts(result$trend1, start = c(1990, 1), frequency = 4)
-result$trend2 <- ts(result$trend2, start = c(1990, 1), frequency = 4)
-result$trend3 <- ts(result$trend3, start = c(1990, 1), frequency = 4)
-result$trend4 <- ts(result$trend4, start = c(1990, 1), frequency = 4)
-result$trend5 <- ts(result$trend5, start = c(1990, 1), frequency = 4)
-result$trend6 <- ts(result$trend6, start = c(1990, 1), frequency = 4)
+result$Intercept <- ts(result$Intercept, start = start, frequency = 4)
+result$trend1 <- ts(result$trend1, start = start, frequency = 4)
+result$trend2 <- ts(result$trend2, start = start, frequency = 4)
+result$trend3 <- ts(result$trend3, start = start, frequency = 4)
+result$trend4 <- ts(result$trend4, start = start, frequency = 4)
+result$trend5 <- ts(result$trend5, start = start, frequency = 4)
+result$trend6 <- ts(result$trend6, start = start, frequency = 4)
 
-result$fit_trend1 <- ts(result$fit_trend1, start = c(1990, 1), frequency = 4)
-result$fit_trend2 <- ts(result$fit_trend2, start = c(1990, 1), frequency = 4)
-result$fit_trend3 <- ts(result$fit_trend3, start = c(1990, 1), frequency = 4)
-result$fit_trend4 <- ts(result$fit_trend4, start = c(1990, 1), frequency = 4)
-result$fit_trend5 <- ts(result$fit_trend5, start = c(1990, 1), frequency = 4)
-result$fit_trend6 <- ts(result$fit_trend6, start = c(1990, 1), frequency = 4)
+result$fit_trend1 <- ts(result$fit_trend1, start = start, frequency = 4)
+result$fit_trend2 <- ts(result$fit_trend2, start = start, frequency = 4)
+result$fit_trend3 <- ts(result$fit_trend3, start = start, frequency = 4)
+result$fit_trend4 <- ts(result$fit_trend4, start = start, frequency = 4)
+result$fit_trend5 <- ts(result$fit_trend5, start = start, frequency = 4)
+result$fit_trend6 <- ts(result$fit_trend6, start = start, frequency = 4)
