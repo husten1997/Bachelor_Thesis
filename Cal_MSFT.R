@@ -198,10 +198,10 @@ plot(as.numeric(MSFT$P.Data$P), col = as.character(factor(MSFT$Ratio.PB$nd.PB, l
 lines(as.numeric(MSFT$P.Data$P))
 
 fore <- function(x, h){
-  model <- ets(x, model = "MAN", alpha = 0.785, beta = 0.2945)
+  model <- ets(x, model = "MAN", alpha = 0.9, beta = 0.01)
   forecast(model, h = h)
 }
-test <- tsCV(MSFT$P.Data$P, fore, h = 2)
+test <- tsCV(MSFT$P.Data$P, fore, h = 1)
 plot(test)
 
 MSFT$Ratio.PB$MA.PB <- ts(c(rep(NA, 15), rollmean(MSFT$Ratio.PB$PB, k = 16)), start = c(1990, 1), frequency = 4)
