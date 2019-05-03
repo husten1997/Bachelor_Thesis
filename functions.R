@@ -331,14 +331,15 @@ PB.CV <- function(envi, r.P.a = c(0.5, 0.99), r.P.b = c(0.01, 0.5), r.B.a = c(0.
           print(c(P.a, P.b, B.a, B.b))
           #system.time(
           {
-            e <- rep(NA, l)
+            PB.forecast <- rep(NA, l)
             tryCatch({
               for(i in c(4:(l-5))){
                 P.model <- ets(window(envi$P.Data$P, end = c(1990 + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
                 B.model <- ets(window(envi$B.Data$BPS_E, end = c(1990 + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
-                PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
-                e[i] <- (envi$Ratio.PB$PB[i] - PB.forecast[1])
+                PB.forecast[i] <- (forecast(P.model)$mean / forecast(B.model)$mean)[1]
+                #e[i] <- (envi$Ratio.PB$PB[i+1] - PB.forecast[1])
               }
+              e <- envi$Ratio.PB$PB - PB.forecast
             }, error = function(a){
               e <- NA
             })
