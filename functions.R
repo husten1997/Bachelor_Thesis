@@ -248,13 +248,13 @@ fite.model <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b 
   envi$Ratio.PB$sig_trend4 <- 0
   envi$Ratio.PB$sig_trend5 <- 0
   
-  for(i in c(4:(l-5))){
+  for(i in c(8:(l-4))){
     data <- data.table(P = window(envi$P.Data$P, end = c(sta + (i+4)*0.25)))
     data$B <- window(envi$B.Data$BPS_E, end = c(sta + (i+4)*0.25))
     P.model <- ets(window(envi$P.Data$P, end = c(sta + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
     B.model <- ets(window(envi$B.Data$BPS_E, end = c(sta + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
     PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
-    data$PB <- window(envi$Ratio.PB$PB, end = c(sta + (i+4)*0.25))
+    data$PB <- window(envi$Ratio.PB$PB, start = c(sta + (i-8)*0.25) ,end = c(sta + (i+4)*0.25))
     data$PB[c((i+1):(i+5))] <- PB.forecast[c(1:5)]
     data$PB <- ts(data$PB, start = sta, frequency = 4)
     
