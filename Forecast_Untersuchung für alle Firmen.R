@@ -8,9 +8,14 @@ kpss.test(MSFT$P.Data$P)
 adf.test(MSFT$Ratio.PB$PB)
 kpss.test(MSFT$Ratio.PB$PB)
 
-dat <- window(MSFT$Ratio.PB$PB, start = c(1990), end = c(2000, 1))
+dat <- window(MSFT$Ratio.PB$PB, start = c(1990), end = c(2018, 3))
 model <- auto.arima(dat)
+mean(model$residuals^2, na.rm = TRUE)
+
+model <- ets(dat, model = "MAN", damped = FALSE)
+mean((MSFT$Ratio.PB$PB - model$fitted)^2, na.rm = TRUE)
 plot(forecast(model))
+lines(model$fitted, col = c("orange"))
 
 #AAPL----------------------------------
 adf.test(AAPL$B.Data$BPS_E)
