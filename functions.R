@@ -12,20 +12,21 @@ plot.dens <- function(dataset, a = 2, title, color = c("black", "black", "black"
   invisible(pp)
 }
 
-plot.ext <- function(dataset, a = 2, title, color = c("black", "green", "orange")){
+plot.ext <- function(dataset, a = 2, title = NULL, color = c("black", "green", "orange")){
   m <- mean(dataset, na.rm = TRUE)
   s <- sd(dataset, na.rm = TRUE)
-  ind_up <- index(dataset[dataset > (m + a * s)])
-  ind_down <- index(dataset[dataset < (m - a * s)])
-  plot_data <- dataset
-  colnames(plot_data) <- c("a")
+  ind_up <- which(dataset > (m + a * s))
+  ind_down <- which(dataset < (m - a * s))
+  plot_data <- data.table(a = dataset)
   plot_data$b <- dataset
   plot_data$c <- dataset
-  plot_data$a[index(plot_data) %in% ind_up] <- NA
-  plot_data$a[index(plot_data) %in% ind_down] <- NA
-  plot_data$b[!index(plot_data) %in% ind_up] <- NA
-  plot_data$c[!index(plot_data) %in% ind_down] <- NA
-  plot(plot_data, col = color, type = c("p"), main = title)
+  plot_data$b[-ind_up] <- NA
+  plot_data$c[-ind_down] <- NA
+  
+  
+  plot(plot_data$a, col = color[1], type = c("l"), main = title)
+  points(plot_data$b, col = color[2])
+  points(plot_data$c, col = color[3])
 }
 
 import <- function(envi, P_start_date, BV_start_date, count_of_days){
@@ -173,9 +174,8 @@ p.overview <- function(envi){
 get.extrm_ind <- function(dataset, a = 2){
   m <- mean(dataset, na.rm = TRUE)
   s <- sd(dataset, na.rm = TRUE)
-  ind_up <- index(dataset[dataset > (m + a * s)])
-  ind_down <- index(dataset[dataset < (m - a * s)])
-  #View(cbind(ind_up, ind_down))
+  ind_up <- which(dataset > (m + a * s))
+  ind_down <- which(dataset < (m - a * s))
   return(list(ind_up, ind_down))
 }
 
@@ -231,7 +231,7 @@ import <- function(envi, start_d, end_d, start_p){
   envi$Ratio.PB$d.PB.MA <- ts(c(rep(NA, 7), rollmean(envi$Ratio.PB$d.PB, k = 8)), start = start_d, frequency = 4)
 }
 
-fite.model <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.11, sta = 1990){
+fite.model <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.11, sta = 1990, wind = 8){
   l <- length(envi$Ratio.PB$PB)
   result <- data.table(matrix(NA, nrow = l, ncol = 8))
   colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5", "trend6")
@@ -244,26 +244,36 @@ fite.model <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b 
   result$fit_trend5 <- envi$Ratio.PB$PB
   result$fit_trend6 <- envi$Ratio.PB$PB
   
+  result$Intercept <- NA
+  result$trend1 <- NA
+  result$trend2 <- NA
+  result$trend3 <- NA
+  result$trend4 <- NA
+  result$trend5 <- NA
+  result$trend6 <- NA
+  
+  envi$Ratio.PB$sig_trend1 <- 0
+  envi$Ratio.PB$sig_trend2 <- 0
   envi$Ratio.PB$sig_trend3 <- 0
   envi$Ratio.PB$sig_trend4 <- 0
   envi$Ratio.PB$sig_trend5 <- 0
   
-  for(i in c(8:(l-4))){
+  for(i in c(wind:(l-5))){
     data <- data.table(P = window(envi$P.Data$P, end = c(sta + (i+4)*0.25)))
     data$B <- window(envi$B.Data$BPS_E, end = c(sta + (i+4)*0.25))
     P.model <- ets(window(envi$P.Data$P, end = c(sta + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
     B.model <- ets(window(envi$B.Data$BPS_E, end = c(sta + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
     PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
-    data$PB <- window(envi$Ratio.PB$PB, start = c(sta + (i-8)*0.25) ,end = c(sta + (i+4)*0.25))
-    data$PB[c((i+1):(i+5))] <- PB.forecast[c(1:5)]
-    data$PB <- ts(data$PB, start = sta, frequency = 4)
+    data_PB <- data.table(PB = window(envi$Ratio.PB$PB, start = c(sta + (i-wind)*0.25) ,end = c(sta + (i+4)*0.25)))
+    data_PB$PB[c((length(data_PB$PB)-4):(length(data_PB$PB)))] <- PB.forecast[c(1:5)]
+    data_PB$PB <- ts(data_PB$PB, start = c(sta + (i-8)*0.25), frequency = 4)
     
-    Poly.model1 <- tslm(PB ~ I(trend), data = data)
-    Poly.model2 <- tslm(PB ~ I(trend) + I(trend^2), data = data)
-    Poly.model3 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3), data = data)
-    Poly.model4 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4), data = data)
-    Poly.model5 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5), data = data)
-    Poly.model6 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5)+ I(trend^6), data = data)
+    Poly.model1 <- tslm(PB ~ I(trend), data = data_PB)
+    Poly.model2 <- tslm(PB ~ I(trend) + I(trend^2), data = data_PB)
+    Poly.model3 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3), data = data_PB)
+    Poly.model4 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4), data = data_PB)
+    Poly.model5 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5), data = data_PB)
+    Poly.model6 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5)+ I(trend^6), data = data_PB)
     
     result$Intercept[i] <- summary(Poly.model3)$coefficients[1,4]
     result$trend1[i] <- summary(Poly.model1)$coefficients[2,4]
@@ -273,16 +283,22 @@ fite.model <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b 
     result$trend5[i] <- summary(Poly.model5)$coefficients[6,4]
     result$trend6[i] <- summary(Poly.model6)$coefficients[7,4]
     
-    result$fit_trend1[i] <- if(result$trend1[i] < 0.1) result$fit_trend1[i] else NA
-    result$fit_trend2[i] <- if(result$trend2[i] < 0.1) result$fit_trend2[i] else NA
-    result$fit_trend3[i] <- if(result$trend3[i] < 0.1) result$fit_trend3[i] else NA
-    envi$Ratio.PB$sig_trend3[i]<- if(result$trend3[i] < 0.1) 1 else 0
-    result$fit_trend4[i] <- if(result$trend4[i] < 0.1) result$fit_trend4[i] else NA
-    envi$Ratio.PB$sig_trend4[i]<- if(result$trend4[i] < 0.1) 1 else 0
-    result$fit_trend5[i] <- if(result$trend5[i] < 0.1) result$fit_trend5[i] else NA
-    envi$Ratio.PB$sig_trend5[i]<- if(result$trend5[i] < 0.1) 1 else 0
-    result$fit_trend6[i] <- if(result$trend6[i] < 0.1) result$fit_trend6[i] else NA
+    r <- 0.4
+    R <- c(0, 1)
+    linearHypothesis(model = Poly.model1, hypothesis.matrix = R, rhs = r)
+    #coeftest()
     
+    result$fit_trend1[i] <- if(result$trend1[i] < 0.1 & Poly.model1$coefficients[2] > 0.4) result$fit_trend1[i] else NA
+    envi$Ratio.PB$sig_trend1[i]<- if(result$trend1[i] < 0.1 & Poly.model1$coefficients[2] > 0.4) 1 else 0
+    result$fit_trend2[i] <- if(result$trend2[i] < 0.1 & Poly.model2$coefficients[3] > 0) result$fit_trend2[i] else NA
+    envi$Ratio.PB$sig_trend2[i]<- if(result$trend2[i] < 0.1 & Poly.model2$coefficients[3] > 0) 1 else 0
+    result$fit_trend3[i] <- if(result$trend3[i] < 0.1 & Poly.model3$coefficients[4] > 0) result$fit_trend3[i] else NA
+    envi$Ratio.PB$sig_trend3[i]<- if(result$trend3[i] < 0.1 & Poly.model3$coefficients[4] > 0) 1 else 0
+    result$fit_trend4[i] <- if(result$trend4[i] < 0.1 & Poly.model4$coefficients[5] > 0) result$fit_trend4[i] else NA
+    envi$Ratio.PB$sig_trend4[i]<- if(result$trend4[i] < 0.1 & Poly.model4$coefficients[5] > 0) 1 else 0
+    result$fit_trend5[i] <- if(result$trend5[i] < 0.1 & Poly.model5$coefficients[6] > 0) result$fit_trend5[i] else NA
+    envi$Ratio.PB$sig_trend5[i]<- if(result$trend5[i] < 0.1 & Poly.model5$coefficients[6] > 0) 1 else 0
+    result$fit_trend6[i] <- if(result$trend6[i] < 0.1 & Poly.model6$coefficients[7] > 0) result$fit_trend6[i] else NA
   }
   
   result$Intercept <- ts(result$Intercept, start = sta, frequency = 4)
@@ -356,6 +372,15 @@ PB.CV <- function(envi, r.P.a = c(0.5, 0.99), r.P.b = c(0.01, 0.5), r.B.a = c(0.
 }
 
 con.table <- function(envi){
+  print("------------------")
+  print("Trend 1")
+  print(prop.table(ftable(envi$Ratio.PB$sig_trend1, envi$Ratio.PB$redAlert)))
+  print(sum(prop.table(ftable(envi$Ratio.PB$sig_trend1, envi$Ratio.PB$redAlert))[c(1,4)]))
+  print("------------------")
+  print("Trend 2")
+  print(prop.table(ftable(envi$Ratio.PB$sig_trend2, envi$Ratio.PB$redAlert)))
+  print(sum(prop.table(ftable(envi$Ratio.PB$sig_trend2, envi$Ratio.PB$redAlert))[c(1,4)]))
+  print("------------------")
   print("Trend 3")
   print(prop.table(ftable(envi$Ratio.PB$sig_trend3, envi$Ratio.PB$redAlert)))
   print(sum(prop.table(ftable(envi$Ratio.PB$sig_trend3, envi$Ratio.PB$redAlert))[c(1,4)]))

@@ -64,3 +64,32 @@ import(ORCL, start_d = c(1990, 2), end_d = c(2018, 4), start_p = c(1987, 1))
 
 
 
+#Red Alert----------------------------------------------------------------------------------------------
+#MSFT Red Alert
+MSFT$Ratio.PB$redAlert <- 0
+MSFT$Ratio.PB$redAlert[c(29:41)] <- 1
+MSFT$Ratio.PB$redAlert[c(64:75)] <- 1
+
+MSFT$Ratio.PB$redAlert <- ts(MSFT$Ratio.PB$redAlert, start = c(1990, 1), frequency = 4)
+
+#AAPL Red Alert
+AAPL$Ratio.PB$redAlert <- 0
+AAPL$Ratio.PB$redAlert[c(34:43)] <- 1
+AAPL$Ratio.PB$redAlert[c(59:75)] <- 1
+
+AAPL$Ratio.PB$redAlert <- ts(AAPL$Ratio.PB$redAlert, start = c(1990, 1), frequency = 4)
+
+#ORCL Red Alert
+ORCL$Ratio.PB$redAlert <- 0
+ORCL$Ratio.PB$redAlert[c(38:45)] <- 1
+
+ORCL$Ratio.PB$redAlert <- ts(ORCL$Ratio.PB$redAlert, start = c(1990, 1), frequency = 4)
+
+#IBM Red Alert
+IBM$Ratio.PB$redAlert <- 0
+IBM$Ratio.PB$redAlert[c(33:50)] <- 1
+IBM$Ratio.PB$redAlert[c(68:73)] <- 1
+IBM$Ratio.PB$redAlert[c(77:81)] <- 1
+IBM$Ratio.PB$redAlert[c(87:105)] <- 1
+
+IBM$Ratio.PB$redAlert <- ts(IBM$Ratio.PB$redAlert, start = c(1990, 1), frequency = 4)

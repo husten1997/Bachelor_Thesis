@@ -87,28 +87,31 @@ points(IBM$P.Data$P, col = as.character(factor(IBM$Ratio.PB$redAlert, labels = c
 abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
 
 #MSFT Cal
-MSFT.res <- fite.model(MSFT)
+MSFT.res <- fite.model(MSFT, wind = 12)
 plot.result(MSFT, MSFT.res)
+
+View(MSFT.res)
+plot.dens(MSFT.res$trend1, title = c("bla"), plot.norm = TRUE, plot.lines = TRUE)
 
 con.table(MSFT)
 
 
 #AAPL Cal
-AAPL.res <- fite.model(AAPL, P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.31)
+AAPL.res <- fite.model(AAPL, P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.31, wind = 12)
 plot.result(AAPL, AAPL.res)
 
 con.table(AAPL)
 
 
 #ORCL cal
-ORCL.res <- fite.model(ORCL, P.a = 0.9, P.b = 0.01, B.a = 0.5, B.b = 0.21, sta = 1990.25)
+ORCL.res <- fite.model(ORCL, P.a = 0.9, P.b = 0.01, B.a = 0.5, B.b = 0.21, sta = 1990.25, wind = 12)
 plot.result(ORCL, ORCL.res)
 
 con.table(ORCL)
 
 
 #IBM Cal
-IBM.res <- fite.model(IBM, P.a = 0.9, P.b = 0.01, B.a = 0.9, B.b = 0.01)
+IBM.res <- fite.model(IBM, P.a = 0.9, P.b = 0.01, B.a = 0.9, B.b = 0.01, wind = 12)
 plot.result(IBM, IBM.res)
 
 con.table(IBM)

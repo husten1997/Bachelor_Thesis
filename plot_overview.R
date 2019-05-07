@@ -64,3 +64,40 @@ plot.dens(ORCL$P_xts$d.P_MA, a = 2, title = c("ORCL: Density of change in Price"
 plot.ext(ORCL$P_xts$d.P_MA, a = 2, title = c("ORCL: Extrems of change in Prices"))
 par(mfrow = c(1,1))
 
+
+#Red Alert
+#MSFT Red Alert
+plot(MSFT$Ratio.PB$PB, type = c("l"))
+points(MSFT$Ratio.PB$PB, col = as.character(factor(MSFT$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
+
+plot(MSFT$P.Data$P)
+points(MSFT$P.Data$P, col = as.character(factor(MSFT$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
+
+#AAPL Red Alert
+plot(AAPL$Ratio.PB$PB, type = c("l"))
+points(AAPL$Ratio.PB$PB, col = as.character(factor(AAPL$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
+
+plot(AAPL$P.Data$P)
+points(AAPL$P.Data$P, col = as.character(factor(AAPL$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
+
+#ORCL Red Alert
+plot(ORCL$Ratio.PB$PB, type = c("l"))
+points(ORCL$Ratio.PB$PB, col = as.character(factor(ORCL$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
+
+plot(ORCL$P.Data$P)
+points(ORCL$P.Data$P, col = as.character(factor(ORCL$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
+
+#IBM Red Alert
+plot(IBM$Ratio.PB$PB, type = c("l"))
+points(IBM$Ratio.PB$PB, col = as.character(factor(IBM$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
+
+plot(IBM$P.Data$P)
+points(IBM$P.Data$P, col = as.character(factor(IBM$Ratio.PB$redAlert, labels = c("green", "red"))))
+abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
