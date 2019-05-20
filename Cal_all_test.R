@@ -90,14 +90,14 @@ abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
 MSFT.res <- fite.model(MSFT, wind = 12)
 plot.result(MSFT, MSFT.res)
 
-View(MSFT.res)
-plot.dens(MSFT.res$trend1, title = c("bla"), plot.norm = TRUE, plot.lines = TRUE)
+#View(MSFT.res)
+#plot.dens(MSFT.res$trend1, title = c("bla"), plot.norm = TRUE, plot.lines = TRUE)
 
 con.table(MSFT)
 
 
 #AAPL Cal
-AAPL.res <- fite.model(AAPL, P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.31, wind = 12)
+AAPL.res <- fite.model(AAPL, P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.31, wind = 8)
 plot.result(AAPL, AAPL.res)
 
 con.table(AAPL)
@@ -111,7 +111,7 @@ con.table(ORCL)
 
 
 #IBM Cal
-IBM.res <- fite.model(IBM, P.a = 0.9, P.b = 0.01, B.a = 0.9, B.b = 0.01, wind = 12)
+IBM.res <- fite.model(IBM, P.a = 0.9, P.b = 0.01, B.a = 0.9, B.b = 0.01, wind = 20)
 plot.result(IBM, IBM.res)
 
 con.table(IBM)

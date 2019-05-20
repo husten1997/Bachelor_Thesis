@@ -1,10 +1,10 @@
-start <- 1990.25
-envi <- ORCL
+start <- 1990
+envi <- MSFT
 mod = "MAN"
-P.a <- 0.9
-P.b <- 0.01
-B.a <- 0.5
-B.b <- 0.21
+P.a <- 0.999
+P.b <- 0.051
+B.a <- 0.584
+B.b <- 0.157
 
 l <- length(envi$Ratio.PB$PB)
 result <- data.table(matrix(NA, nrow = l, ncol = 8))
@@ -56,6 +56,11 @@ for(i in c(4:(l-5))){
   result$fit_trend5[i] <- if(result$trend5[i] < 0.1) result$fit_trend5[i] else NA
   envi$Ratio.PB$sig_trend5[i]<- if(result$trend5[i] < 0.1) 1 else 0
   result$fit_trend6[i] <- if(result$trend6[i] < 0.1) result$fit_trend6[i] else NA
+  
+  plot(MSFT$Ratio.PB$PB, col = c("grey"), main = i)
+  lines(data$PB, col = c("black"))
+  
+  lines(Poly.model5$fitted.values, col = c("red"))
   
 }
 
