@@ -97,3 +97,11 @@ plot(MSFT$Ratio.PB$PB, col = c("grey"), main = i)
 lines(data.PB$PB, col = c("black"))
 
 lines(Poly.model3$fitted.values, col = c("red"))
+
+#AR comparission
+par(mfrow = c(1, 2))
+ar1 <- arima.sim(n = 300, list(ar = c(0.001)))
+plot(ar1)
+ar2 <- arima.sim(n = 300, list(ar = c(0.999)))
+plot(ar2)
+par(mfrow = c(1, 1))
