@@ -14,6 +14,8 @@ plot(MSFT$P_xts$d.P, main = c("Change of Price"))
 plot.dens(dataset = MSFT$P_xts$d.P, a = 2, title = c("Density of Change in Price"))
 par(mfrow = c(1,1))
 
+plot.ext(MSFT$P.Data$d.P, a = 2, title = c("Test"))
+
 #ggplot(data = MSFT$P_xts$P, aes(x=Index, y=P)) + geom_line()
 
 #Plot AAPL------------------------------------------------------------------------

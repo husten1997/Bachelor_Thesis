@@ -40,6 +40,8 @@ plot(MSFT$P.Data$P)
 points(MSFT$P.Data$P, col = as.character(factor(MSFT$Ratio.PB$redAlert, labels = c("green", "red"))))
 abline(v = seq(from = 1990, length.out = 116, by = .25), col = c("grey"))
 
+adf.test(MSFT$P.Data$P)
+kpss.test(MSFT$P.Data$P)
 #AAPL Red Alert
 AAPL$Ratio.PB$redAlert <- 0
 AAPL$Ratio.PB$redAlert[c(34:43)] <- 1

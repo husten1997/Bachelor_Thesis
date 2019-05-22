@@ -29,6 +29,23 @@ plot.ext <- function(dataset, a = 2, title = NULL, color = c("black", "green", "
   points(plot_data$c, col = color[3])
 }
 
+plot.ext <- function(dataset, a = 2, title = NULL, color = c("black", "green", "orange")){
+  m <- mean(dataset, na.rm = TRUE)
+  s <- sd(dataset, na.rm = TRUE)
+  ind_up <- which(dataset > (m + a * s))
+  ind_down <- which(dataset < (m - a * s))
+  plot_data <- data.table(a = dataset)
+  plot_data$b <- dataset
+  plot_data$c <- dataset
+  plot_data$b[-ind_up] <- NA
+  plot_data$c[-ind_down] <- NA
+  
+  
+  plot(plot_data$a, col = color[1], type = c("l"), main = title)
+  points(plot_data$b, col = color[2])
+  points(plot_data$c, col = color[3])
+}
+
 import <- function(envi, P_start_date, BV_start_date, count_of_days){
   envi$BV$EPS_ttm <- rep(0)
   for(i in c((nrow(envi$BV)-3):1)){
