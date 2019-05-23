@@ -241,18 +241,16 @@ ggsave("graphics/MSFT_PB_sdPB.png", width = 20, height = 10, units = "cm", dpi =
 
 #AR comparison 
 set.seed(12345)
-par(mfrow = c(2, 1))
-
-ar1 <- arima.sim(n = 300, list(ar = c(0.001)))
-plot(ar1, main = c("beta = 0.001"), ylab = c())
-ar2 <- arima.sim(n = 300, list(ar = c(0.999)))
-plot(ar2, main = c("beta = 0.999"), ylab = c())
-par(mfrow = c(1, 1))
-
 plot.data <- data.table(ar1 = arima.sim(n = 300, list(ar = c(0.001))), ar2 = arima.sim(n = 300, list(ar = c(0.999))))
-ggpl <- ggplot(plot.data, aes(x = index(PB), y)) +
-  geom_line(aes(x = index(PB), y = PB, color = "PB")) +
-  facet_grid()
-  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
-  labs(title = c("Microsoft PB mit verschiedenen Varianzen"), x = c("Zeit"), y = c("P/B")) +
+ggpl1 <- ggplot(plot.data, aes(x = index(ar1), y)) +
+  geom_line(aes(x = index(ar1), y = ar1)) +
+  #scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1, to = 300, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("beta = 0.001"), x = NULL, y = c("AR")) +
   theme_minimal()
+ggpl2 <- ggplot(plot.data, aes(x = index(ar2), y)) +
+  geom_line(aes(x = index(ar2), y = ar2)) +
+  #scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1, to = 300, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("beta = 0.999"), x = c("Zeit"), y = c("AR")) +
+  theme_minimal()
+grid.arrange(ggpl1, ggpl2, nrow = 2)
+ggsave("graphics/AR_Comp.png", width = 20, height = 10, units = "cm", dpi = 300) 
