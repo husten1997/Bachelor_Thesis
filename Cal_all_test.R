@@ -97,12 +97,18 @@ plot.result(MSFT, MSFT.res)
 
 con.table(MSFT)
 
+plot.dens(MSFT.res$est.trend1, title = c("MSFT"), plot.norm = TRUE, plot.lines = TRUE, a = 1)
+sd(MSFT.res$est.trend1, na.rm = TRUE)
+
 
 #AAPL Cal
 AAPL.res <- fite.model(AAPL, P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.31, wind = 8)
 plot.result(AAPL, AAPL.res)
 
 con.table(AAPL)
+
+plot.dens(AAPL.res$est.trend1, title = c("AAPL"), plot.norm = TRUE, plot.lines = TRUE, a = 1)
+sd(AAPL.res$est.trend1)
 
 
 #ORCL cal
@@ -111,6 +117,9 @@ plot.result(ORCL, ORCL.res)
 
 con.table(ORCL)
 
+plot.dens(ORCL.res$est.trend1, title = c("ORCL"), plot.norm = TRUE, plot.lines = TRUE, a = 1)
+sd(ORCL.res$est.trend1, na.rm = TRUE)
+
 
 #IBM Cal
 IBM.res <- fite.model(IBM, P.a = 0.9, P.b = 0.01, B.a = 0.9, B.b = 0.01, wind = 20)
@@ -118,3 +127,19 @@ plot.result(IBM, IBM.res)
 
 con.table(IBM)
 
+plot.dens(IBM.res$est.trend1, title = c("IBM"), plot.norm = TRUE, plot.lines = TRUE, a = 1)
+sd(IBM.res$est.trend1, na.rm = TRUE)
+
+
+#Cal alternatives MSFT
+#MSFT Cal
+MSFT.res <- fite.model(MSFT, wind = 16)
+plot.result(MSFT, MSFT.res)
+con.table(MSFT)
+
+
+
+
+MSFT.res <- fite.model.ARIMA(MSFT, wind = 16)
+plot.result(MSFT, MSFT.res)
+con.table(MSFT)

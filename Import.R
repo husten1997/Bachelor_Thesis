@@ -65,6 +65,7 @@ import(ORCL, start_d = c(1990, 2), end_d = c(2018, 4), start_p = c(1987, 1))
 
 
 #Red Alert----------------------------------------------------------------------------------------------
+#An dieser Stelle wird die Faktorvariable eingefügt, welche die Kriese andeuten soll
 #MSFT Red Alert
 MSFT$Ratio.PB$redAlert <- 0
 MSFT$Ratio.PB$redAlert[c(29:41)] <- 1

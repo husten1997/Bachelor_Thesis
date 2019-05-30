@@ -191,27 +191,9 @@ ggplot(MSFT$Ratio.PB, aes(x = index(PB), y = d.PB)) +
   scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
   labs(title = c("Microsoft I(PB) mit einem MA"), x = c("Zeit"), y = c("P/B")) +
   theme_minimal()
-ggsave("graphics/MSFT_PB_MA.png", width = 20, height = 10, units = "cm", dpi = 300)
+ggsave("graphics/MSFT_IPB_MA.png", width = 20, height = 10, units = "cm", dpi = 300)
 
 #MSFT PB SD Analysis
-plot(MSFT$Ratio.PB$PB, main = c("MSFT PB with SD(e)"))
-s <- MSFT$Ratio.PB$PB[1] + 2.851944 * sqrt(c(1:length(MSFT$Ratio.PB$PB)))
-time <- ts(s, start = c(1990, 1))
-lines(time, col = c("orange"))
-
-s <- MSFT$Ratio.PB$PB[1] + 2.851944 * sqrt(2 *  c(1:length(MSFT$Ratio.PB$PB)))
-time <- ts(s, start = c(1990, 1))
-lines(time, col = c("red"))
-
-s <- MSFT$Ratio.PB$PB[1] - 2.851944 * sqrt(c(1:length(MSFT$Ratio.PB$PB)))
-time <- ts(s, start = c(1990, 1))
-lines(time, col = c("orange"))
-
-s <- MSFT$Ratio.PB$PB[1] - 2.851944 * sqrt(2 *  c(1:length(MSFT$Ratio.PB$PB)))
-time <- ts(s, start = c(1990, 1))
-lines(time, col = c("red"))
-legend(x = "topleft", c("PB", "2 * SD(e)", "3 * SD(e)"), col = c("black", "orange", "red"), lty = c(1, 1, 1))
-
 ggpl <- ggplot(MSFT$Ratio.PB, aes(x = index(PB), y = PB)) +
   geom_line(aes(x = index(PB), y = PB, color = "PB")) +
   scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
@@ -241,16 +223,89 @@ ggsave("graphics/MSFT_PB_sdPB.png", width = 20, height = 10, units = "cm", dpi =
 
 #AR comparison 
 set.seed(12345)
-plot.data <- data.table(ar1 = arima.sim(n = 300, list(ar = c(0.001))), ar2 = arima.sim(n = 300, list(ar = c(0.999))))
-ggpl1 <- ggplot(plot.data, aes(x = index(ar1), y)) +
+plot.data <- data.table(ar1 = arima.sim(n = 300, list(ar = c(0.25))), ar2 = arima.sim(n = 300, list(ar = c(0.75))), ar3 = arima.sim(n = 300, list(ar = c(0.999))))
+ggpl1 <- ggplot(plot.data) +
   geom_line(aes(x = index(ar1), y = ar1)) +
   #scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1, to = 300, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
-  labs(title = c("beta = 0.001"), x = NULL, y = c("AR")) +
+  labs(title = c("beta = 0.25"), x = NULL, y = c("AR")) +
   theme_minimal()
-ggpl2 <- ggplot(plot.data, aes(x = index(ar2), y)) +
+ggpl2 <- ggplot(plot.data) +
   geom_line(aes(x = index(ar2), y = ar2)) +
+  #scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1, to = 300, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("beta = 0.75"), x = c("Zeit"), y = c("AR")) +
+  theme_minimal()
+ggpl3 <- ggplot(plot.data) +
+  geom_line(aes(x = index(ar3), y = ar3)) +
   #scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1, to = 300, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
   labs(title = c("beta = 0.999"), x = c("Zeit"), y = c("AR")) +
   theme_minimal()
-grid.arrange(ggpl1, ggpl2, nrow = 2)
-ggsave("graphics/AR_Comp.png", width = 20, height = 10, units = "cm", dpi = 300) 
+ggpl3 <- arrangeGrob(ggpl1, ggpl2, ggpl3, nrow = 3)
+
+ggsave("graphics/AR_Comp.png", width = 20, height = 20, units = "cm", dpi = 300, plot = ggpl3) 
+
+
+#Prices of all Companies
+MSFT_P <- ggplot(MSFT$P.Data) +
+  geom_line(aes(x = index(P), y = P)) +
+  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("Microsoft Preis Daten"), x = c("Zeit"), y = c("Preis")) +
+  theme_minimal()
+AAPL_P <- ggplot(AAPL$P.Data) +
+  geom_line(aes(x = index(P), y = P)) +
+  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("Apple Preis Daten"), x = c("Zeit"), y = c("Preis")) +
+  theme_minimal()
+ORCL_P <- ggplot(ORCL$P.Data) +
+  geom_line(aes(x = index(P), y = P)) +
+  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("Oracle Preis Daten"), x = c("Zeit"), y = c("Preis")) +
+  theme_minimal()
+IBM_P <- ggplot(IBM$P.Data) +
+  geom_line(aes(x = index(P), y = P)) +
+  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("IBM Preis Daten"), x = c("Zeit"), y = c("Preis")) +
+  theme_minimal()
+ggsave("graphics/ALL_P.png", width = 20, height = 15, units = "cm", dpi = 300, plot = arrangeGrob(MSFT_P, AAPL_P, ORCL_P, IBM_P, nrow = 2, ncol = 2)) 
+
+#comparison P and PB
+MSFT_P <- ggplot(MSFT$P.Data) +
+  geom_line(aes(x = index(P), y = P)) +
+  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  geom_vline(xintercept = 2000, col = c("orange")) +
+  labs(title = c("Microsoft Preis Daten"), x = c("Zeit"), y = c("Preis")) +
+  theme_minimal()
+MSFT_PB <- ggplot(MSFT$Ratio.PB) +
+  geom_line(aes(x = index(PB), y = PB)) +
+  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  geom_vline(xintercept = 2000, col = c("orange")) +
+  labs(title = c("Microsoft PB Daten"), x = c("Zeit"), y = c("PB")) +
+  theme_minimal()
+ggsave("graphics/MSFT_PvsPB.png", width = 20, height = 15, units = "cm", dpi = 300, arrangeGrob(MSFT_P, MSFT_PB, nrow = 2))
+
+#extrems of Price
+ggplot(MSFT$P.Data) +
+  geom_line(aes(x = index(P), y = P, color = d.P), show.legend = FALSE) +
+  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("Microsoft Price - Book Ratio"), x = c("Zeit"), y = c("P/B")) +
+  scale_color_gradient(low = "green", high = "red") +
+  theme_minimal()
+plot.data <- data.table(P = MSFT$P.Data$P, d.P = MSFT$P.Data$d.P, col = c(MSFT$P.Data$d.P[-1], 0))
+ggplot(plot.data) +
+  geom_line(aes(x = index(P), y = P, color = col), show.legend = FALSE, size = 2) +
+  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("Microsoft Price - Book Ratio"), x = c("Zeit"), y = c("P/B")) +
+  scale_color_gradient2(midpoint = mean(MSFT$P.Data$d.P, na.rm = TRUE), mid = "black", low = "red", high = "green") +
+  theme_minimal()
+#ggsave("graphics/MSFT_PB_marked.png", width = 20, height = 10, units = "cm", dpi = 300)
+
+#MSFT MA in PB
+ggplot(MSFT$Ratio.PB) +
+  geom_line(aes(x = index(PB), y = PB, color = "1")) +
+  geom_line(aes(x = index(PB), y = sma.PB, color = "2"), na.rm = TRUE) +
+  geom_line(aes(x = index(PB), y = bma.PB, color = "3"), na.rm = TRUE) +
+  scale_color_manual(limits = c("1", "2", "3"), values = c("black", "orange", "red"), labels = c("PB", "Symetrischer MA", "Rückwärtsgerichteter MA"), name = "") +
+  scale_x_continuous(minor_breaks = c(1990:2020), labels = c(seq(from = 1990, to = 2019, by = 5), 2019), breaks = c(seq(from = 1990, to = 2019, by = 5), 2019)) +
+  labs(title = c("Microsoft PB mit zwei MA"), x = c("Zeit"), y = c("P/B")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+ggsave("graphics/MSFT_PB_MA.png", width = 20, height = 10, units = "cm", dpi = 300)

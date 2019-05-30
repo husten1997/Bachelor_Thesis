@@ -29,22 +29,6 @@ plot.ext <- function(dataset, a = 2, title = NULL, color = c("black", "green", "
   points(plot_data$c, col = color[3])
 }
 
-plot.ext <- function(dataset, a = 2, title = NULL, color = c("black", "green", "orange")){
-  m <- mean(dataset, na.rm = TRUE)
-  s <- sd(dataset, na.rm = TRUE)
-  ind_up <- which(dataset > (m + a * s))
-  ind_down <- which(dataset < (m - a * s))
-  plot_data <- data.table(a = dataset)
-  plot_data$b <- dataset
-  plot_data$c <- dataset
-  plot_data$b[-ind_up] <- NA
-  plot_data$c[-ind_down] <- NA
-  
-  
-  plot(plot_data$a, col = color[1], type = c("l"), main = title)
-  points(plot_data$b, col = color[2])
-  points(plot_data$c, col = color[3])
-}
 
 import <- function(envi, P_start_date, BV_start_date, count_of_days){
   envi$BV$EPS_ttm <- rep(0)
@@ -210,6 +194,8 @@ import <- function(envi, start_d, end_d, start_p){
   envi$P.Data$d.P <- window(envi$P.Data_pre$d.P, start = start_d)
   envi$P.Data$nd.P <- 0
   envi$P.Data$nd.P[envi$P.Data$d.P > 0] <- as.factor(1)
+  envi$P.Data$sma.P <- ma(envi$P.Data$P, 8)
+  envi$P.Data$bma.P <- c(rep(NA, 7), rollmean(envi$P.Data$P, k = 8))
   
   #Fundamental Data-------------------------------------------------------------------------------
   #I should write them down into the B.Data table => more convenient
@@ -246,9 +232,127 @@ import <- function(envi, start_d, end_d, start_p){
   envi$Ratio.PB$d4.PB[is.infinite(envi$Ratio.PB$d.PB)] <- NA
   
   envi$Ratio.PB$d.PB.MA <- ts(c(rep(NA, 7), rollmean(envi$Ratio.PB$d.PB, k = 8)), start = start_d, frequency = 4)
+  envi$Ratio.PB$sma.PB <- ma(envi$Ratio.PB$PB, 16)
+  envi$Ratio.PB$bma.PB <- c(rep(NA, 15), rollmean(envi$Ratio.PB$PB, k = 16))
 }
 
-fite.model <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.11, sta = 1990, wind = 8){
+fite.model <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.11, sta = 1990, wind = 8, sig = 0.4){
+  l <- length(envi$Ratio.PB$PB)
+  result <- data.table(matrix(NA, nrow = l, ncol = 8))
+  colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5", "trend6")
+  result$time <- seq(to = 2018.75, length.out =  l, by = 0.25)
+  
+  result$fit_trend1 <- envi$Ratio.PB$PB
+  result$fit_trend2 <- envi$Ratio.PB$PB
+  result$fit_trend3 <- envi$Ratio.PB$PB
+  result$fit_trend4 <- envi$Ratio.PB$PB
+  result$fit_trend5 <- envi$Ratio.PB$PB
+  result$fit_trend6 <- envi$Ratio.PB$PB
+  
+  result$Intercept <- NA
+  result$trend1 <- NA
+  result$trend2 <- NA
+  result$trend3 <- NA
+  result$trend4 <- NA
+  result$trend5 <- NA
+  result$trend6 <- NA
+  
+  result$est.Intercept <- NA
+  result$est.trend1 <- NA
+  result$est.trend2 <- NA
+  result$est.trend3 <- NA
+  result$est.trend4 <- NA
+  result$est.trend5 <- NA
+  result$est.trend6 <- NA
+  
+  envi$Ratio.PB$sig_trend1 <- 0
+  envi$Ratio.PB$sig_trend2 <- 0
+  envi$Ratio.PB$sig_trend3 <- 0
+  envi$Ratio.PB$sig_trend4 <- 0
+  envi$Ratio.PB$sig_trend5 <- 0
+  
+
+  
+  for(i in c(wind:(l-5))){
+    data <- data.table(P = window(envi$P.Data$P, end = c(sta + (i+4)*0.25)))
+    data$B <- window(envi$B.Data$BPS_E, end = c(sta + (i+4)*0.25))
+    P.model <- ets(window(envi$P.Data$P, end = c(sta + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
+    B.model <- ets(window(envi$B.Data$BPS_E, end = c(sta + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
+    PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
+    data_PB <- data.table(PB = window(envi$Ratio.PB$PB, start = c(sta + (i-wind)*0.25) ,end = c(sta + (i+4)*0.25)))
+    data_PB$PB[c((length(data_PB$PB)-4):(length(data_PB$PB)))] <- PB.forecast[c(1:5)]
+    data_PB$PB <- ts(data_PB$PB, start = c(sta + (i-wind)*0.25), frequency = 4)
+    
+    Poly.model1 <- tslm(PB ~ I(trend), data = data_PB)
+    Poly.model2 <- tslm(PB ~ I(trend) + I(trend^2), data = data_PB)
+    Poly.model3 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3), data = data_PB)
+    Poly.model4 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4), data = data_PB)
+    Poly.model5 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5), data = data_PB)
+    Poly.model6 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5)+ I(trend^6), data = data_PB)
+    
+    result$Intercept[i] <- summary(Poly.model3)$coefficients[1,4]
+    result$trend1[i] <- summary(Poly.model1)$coefficients[2,4]
+    result$trend2[i] <- summary(Poly.model2)$coefficients[3,4]
+    result$trend3[i] <- summary(Poly.model3)$coefficients[4,4]
+    result$trend4[i] <- summary(Poly.model4)$coefficients[5,4]
+    result$trend5[i] <- summary(Poly.model5)$coefficients[6,4]
+    result$trend6[i] <- summary(Poly.model6)$coefficients[7,4]
+    
+    result$est.Intercept[i] <- summary(Poly.model3)$coefficients[1,1]
+    result$est.trend1[i] <- summary(Poly.model1)$coefficients[2,1]
+    result$est.trend2[i] <- summary(Poly.model2)$coefficients[3,1]
+    result$est.trend3[i] <- summary(Poly.model3)$coefficients[4,1]
+    result$est.trend4[i] <- summary(Poly.model4)$coefficients[5,1]
+    result$est.trend5[i] <- summary(Poly.model5)$coefficients[6,1]
+    result$est.trend6[i] <- summary(Poly.model6)$coefficients[7,1]
+    
+    r <- sig
+    R <- c(0, 1)
+    linearHypothesis(model = Poly.model1, hypothesis.matrix = R, rhs = r)
+    trend.sig <- linearHypothesis(model = Poly.model1, hypothesis.matrix = R, rhs = r)$'Pr(>F)'[2]
+    
+    pt(summary(Poly.model1)$coefficients[2,3], summary(Poly.model1)$df[2], lower=TRUE)
+    
+    s <- sd(data_PB$PB)
+    TS <- (result$est.trend1[i] - sig) / (s * sqrt(wind + 4))
+    p-val <- pt(TS, summary(Poly.model1)$df[2], lower = TRUE)
+    #coeftest()
+    
+    
+    result$fit_trend1[i] <- if(result$trend1[i] < 0.1 & trend.sig < 0.05) result$fit_trend1[i] else NA
+    envi$Ratio.PB$sig_trend1[i]<- if(result$trend1[i] < 0.1 & trend.sig < 0.05) 1 else 0
+    #result$fit_trend1[i] <- if(result$trend1[i] < 0.1 & Poly.model1$coefficients[2] > 0.4) result$fit_trend1[i] else NA
+    #envi$Ratio.PB$sig_trend1[i]<- if(result$trend1[i] < 0.1 & Poly.model1$coefficients[2] > 0.4) 1 else 0
+    result$fit_trend2[i] <- if(result$trend2[i] < 0.1 & Poly.model2$coefficients[3] > 0) result$fit_trend2[i] else NA
+    envi$Ratio.PB$sig_trend2[i]<- if(result$trend2[i] < 0.1 & Poly.model2$coefficients[3] > 0) 1 else 0
+    result$fit_trend3[i] <- if(result$trend3[i] < 0.1 & Poly.model3$coefficients[4] > 0) result$fit_trend3[i] else NA
+    envi$Ratio.PB$sig_trend3[i]<- if(result$trend3[i] < 0.1 & Poly.model3$coefficients[4] > 0) 1 else 0
+    result$fit_trend4[i] <- if(result$trend4[i] < 0.1 & Poly.model4$coefficients[5] > 0) result$fit_trend4[i] else NA
+    envi$Ratio.PB$sig_trend4[i]<- if(result$trend4[i] < 0.1 & Poly.model4$coefficients[5] > 0) 1 else 0
+    result$fit_trend5[i] <- if(result$trend5[i] < 0.1 & Poly.model5$coefficients[6] > 0) result$fit_trend5[i] else NA
+    envi$Ratio.PB$sig_trend5[i]<- if(result$trend5[i] < 0.1 & Poly.model5$coefficients[6] > 0) 1 else 0
+    result$fit_trend6[i] <- if(result$trend6[i] < 0.1 & Poly.model6$coefficients[7] > 0) result$fit_trend6[i] else NA
+  }
+  
+  result$Intercept <- ts(result$Intercept, start = sta, frequency = 4)
+  result$trend1 <- ts(result$trend1, start = sta, frequency = 4)
+  result$trend2 <- ts(result$trend2, start = sta, frequency = 4)
+  result$trend3 <- ts(result$trend3, start = sta, frequency = 4)
+  result$trend4 <- ts(result$trend4, start = sta, frequency = 4)
+  result$trend5 <- ts(result$trend5, start = sta, frequency = 4)
+  result$trend6 <- ts(result$trend6, start = sta, frequency = 4)
+  
+  result$fit_trend1 <- ts(result$fit_trend1, start = sta, frequency = 4)
+  result$fit_trend2 <- ts(result$fit_trend2, start = sta, frequency = 4)
+  result$fit_trend3 <- ts(result$fit_trend3, start = sta, frequency = 4)
+  result$fit_trend4 <- ts(result$fit_trend4, start = sta, frequency = 4)
+  result$fit_trend5 <- ts(result$fit_trend5, start = sta, frequency = 4)
+  result$fit_trend6 <- ts(result$fit_trend6, start = sta, frequency = 4)
+  
+  return(result)
+}
+
+fite.model.ARIMA <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.11, sta = 1990, wind = 8){
   l <- length(envi$Ratio.PB$PB)
   result <- data.table(matrix(NA, nrow = l, ncol = 8))
   colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5", "trend6")
@@ -278,9 +382,181 @@ fite.model <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b 
   for(i in c(wind:(l-5))){
     data <- data.table(P = window(envi$P.Data$P, end = c(sta + (i+4)*0.25)))
     data$B <- window(envi$B.Data$BPS_E, end = c(sta + (i+4)*0.25))
-    P.model <- ets(window(envi$P.Data$P, end = c(sta + (i-1)*0.25)), model = mod, alpha = P.a, beta = P.b)
-    B.model <- ets(window(envi$B.Data$BPS_E, end = c(sta + (i-1)*0.25)), model = mod, alpha = B.a, beta = B.b)
+    P.model <- auto.arima(window(envi$P.Data$P, end = c(sta + (i-1)*0.25)), d = 0)
+    B.model <- auto.arima(window(envi$B.Data$BPS_E, end = c(sta + (i-1)*0.25)), d = 0)
     PB.forecast <- (forecast(P.model)$mean / forecast(B.model)$mean)
+    data_PB <- data.table(PB = window(envi$Ratio.PB$PB, start = c(sta + (i-wind)*0.25) ,end = c(sta + (i+4)*0.25)))
+    data_PB$PB[c((length(data_PB$PB)-4):(length(data_PB$PB)))] <- PB.forecast[c(1:5)]
+    data_PB$PB <- ts(data_PB$PB, start = c(sta + (i-8)*0.25), frequency = 4)
+    
+    Poly.model1 <- tslm(PB ~ I(trend), data = data_PB)
+    Poly.model2 <- tslm(PB ~ I(trend) + I(trend^2), data = data_PB)
+    Poly.model3 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3), data = data_PB)
+    Poly.model4 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4), data = data_PB)
+    Poly.model5 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5), data = data_PB)
+    Poly.model6 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5)+ I(trend^6), data = data_PB)
+    
+    result$Intercept[i] <- summary(Poly.model3)$coefficients[1,4]
+    result$trend1[i] <- summary(Poly.model1)$coefficients[2,4]
+    result$trend2[i] <- summary(Poly.model2)$coefficients[3,4]
+    result$trend3[i] <- summary(Poly.model3)$coefficients[4,4]
+    result$trend4[i] <- summary(Poly.model4)$coefficients[5,4]
+    result$trend5[i] <- summary(Poly.model5)$coefficients[6,4]
+    result$trend6[i] <- summary(Poly.model6)$coefficients[7,4]
+    
+    r <- 0.4
+    R <- c(0, 1)
+    linearHypothesis(model = Poly.model1, hypothesis.matrix = R, rhs = r)
+    #coeftest()
+    
+    result$fit_trend1[i] <- if(result$trend1[i] < 0.1 & Poly.model1$coefficients[2] > 0.4) result$fit_trend1[i] else NA
+    envi$Ratio.PB$sig_trend1[i]<- if(result$trend1[i] < 0.1 & Poly.model1$coefficients[2] > 0.4) 1 else 0
+    result$fit_trend2[i] <- if(result$trend2[i] < 0.1 & Poly.model2$coefficients[3] > 0) result$fit_trend2[i] else NA
+    envi$Ratio.PB$sig_trend2[i]<- if(result$trend2[i] < 0.1 & Poly.model2$coefficients[3] > 0) 1 else 0
+    result$fit_trend3[i] <- if(result$trend3[i] < 0.1 & Poly.model3$coefficients[4] > 0) result$fit_trend3[i] else NA
+    envi$Ratio.PB$sig_trend3[i]<- if(result$trend3[i] < 0.1 & Poly.model3$coefficients[4] > 0) 1 else 0
+    result$fit_trend4[i] <- if(result$trend4[i] < 0.1 & Poly.model4$coefficients[5] > 0) result$fit_trend4[i] else NA
+    envi$Ratio.PB$sig_trend4[i]<- if(result$trend4[i] < 0.1 & Poly.model4$coefficients[5] > 0) 1 else 0
+    result$fit_trend5[i] <- if(result$trend5[i] < 0.1 & Poly.model5$coefficients[6] > 0) result$fit_trend5[i] else NA
+    envi$Ratio.PB$sig_trend5[i]<- if(result$trend5[i] < 0.1 & Poly.model5$coefficients[6] > 0) 1 else 0
+    result$fit_trend6[i] <- if(result$trend6[i] < 0.1 & Poly.model6$coefficients[7] > 0) result$fit_trend6[i] else NA
+  }
+  
+  result$Intercept <- ts(result$Intercept, start = sta, frequency = 4)
+  result$trend1 <- ts(result$trend1, start = sta, frequency = 4)
+  result$trend2 <- ts(result$trend2, start = sta, frequency = 4)
+  result$trend3 <- ts(result$trend3, start = sta, frequency = 4)
+  result$trend4 <- ts(result$trend4, start = sta, frequency = 4)
+  result$trend5 <- ts(result$trend5, start = sta, frequency = 4)
+  result$trend6 <- ts(result$trend6, start = sta, frequency = 4)
+  
+  result$fit_trend1 <- ts(result$fit_trend1, start = sta, frequency = 4)
+  result$fit_trend2 <- ts(result$fit_trend2, start = sta, frequency = 4)
+  result$fit_trend3 <- ts(result$fit_trend3, start = sta, frequency = 4)
+  result$fit_trend4 <- ts(result$fit_trend4, start = sta, frequency = 4)
+  result$fit_trend5 <- ts(result$fit_trend5, start = sta, frequency = 4)
+  result$fit_trend6 <- ts(result$fit_trend6, start = sta, frequency = 4)
+  
+  return(result)
+}
+
+fite.model.PB.ARIMA <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.11, sta = 1990, wind = 8){
+  l <- length(envi$Ratio.PB$PB)
+  result <- data.table(matrix(NA, nrow = l, ncol = 8))
+  colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5", "trend6")
+  result$time <- seq(to = 2018.75, length.out =  l, by = 0.25)
+  
+  result$fit_trend1 <- envi$Ratio.PB$PB
+  result$fit_trend2 <- envi$Ratio.PB$PB
+  result$fit_trend3 <- envi$Ratio.PB$PB
+  result$fit_trend4 <- envi$Ratio.PB$PB
+  result$fit_trend5 <- envi$Ratio.PB$PB
+  result$fit_trend6 <- envi$Ratio.PB$PB
+  
+  result$Intercept <- NA
+  result$trend1 <- NA
+  result$trend2 <- NA
+  result$trend3 <- NA
+  result$trend4 <- NA
+  result$trend5 <- NA
+  result$trend6 <- NA
+  
+  envi$Ratio.PB$sig_trend1 <- 0
+  envi$Ratio.PB$sig_trend2 <- 0
+  envi$Ratio.PB$sig_trend3 <- 0
+  envi$Ratio.PB$sig_trend4 <- 0
+  envi$Ratio.PB$sig_trend5 <- 0
+  
+  for(i in c(wind:(l-5))){
+    data <- data.table(P = window(envi$P.Data$P, end = c(sta + (i+4)*0.25)))
+    data$B <- window(envi$B.Data$BPS_E, end = c(sta + (i+4)*0.25))
+    PB.forecast <- forecast(auto.arima(window(envi$Ratio.PB$PB, end = c(sta + (i-1)*0.25))))$mean
+    data_PB <- data.table(PB = window(envi$Ratio.PB$PB, start = c(sta + (i-wind)*0.25) ,end = c(sta + (i+4)*0.25)))
+    data_PB$PB[c((length(data_PB$PB)-4):(length(data_PB$PB)))] <- PB.forecast[c(1:5)]
+    data_PB$PB <- ts(data_PB$PB, start = c(sta + (i-8)*0.25), frequency = 4)
+    
+    Poly.model1 <- tslm(PB ~ I(trend), data = data_PB)
+    Poly.model2 <- tslm(PB ~ I(trend) + I(trend^2), data = data_PB)
+    Poly.model3 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3), data = data_PB)
+    Poly.model4 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4), data = data_PB)
+    Poly.model5 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5), data = data_PB)
+    Poly.model6 <- tslm(PB ~ I(trend) + I(trend^2) + I(trend^3) + I(trend^4) + I(trend^5)+ I(trend^6), data = data_PB)
+    
+    result$Intercept[i] <- summary(Poly.model3)$coefficients[1,4]
+    result$trend1[i] <- summary(Poly.model1)$coefficients[2,4]
+    result$trend2[i] <- summary(Poly.model2)$coefficients[3,4]
+    result$trend3[i] <- summary(Poly.model3)$coefficients[4,4]
+    result$trend4[i] <- summary(Poly.model4)$coefficients[5,4]
+    result$trend5[i] <- summary(Poly.model5)$coefficients[6,4]
+    result$trend6[i] <- summary(Poly.model6)$coefficients[7,4]
+    
+    r <- 0.4
+    R <- c(0, 1)
+    linearHypothesis(model = Poly.model1, hypothesis.matrix = R, rhs = r)
+    #coeftest()
+    
+    result$fit_trend1[i] <- if(result$trend1[i] < 0.1 & Poly.model1$coefficients[2] > 0.4) result$fit_trend1[i] else NA
+    envi$Ratio.PB$sig_trend1[i]<- if(result$trend1[i] < 0.1 & Poly.model1$coefficients[2] > 0.4) 1 else 0
+    result$fit_trend2[i] <- if(result$trend2[i] < 0.1 & Poly.model2$coefficients[3] > 0) result$fit_trend2[i] else NA
+    envi$Ratio.PB$sig_trend2[i]<- if(result$trend2[i] < 0.1 & Poly.model2$coefficients[3] > 0) 1 else 0
+    result$fit_trend3[i] <- if(result$trend3[i] < 0.1 & Poly.model3$coefficients[4] > 0) result$fit_trend3[i] else NA
+    envi$Ratio.PB$sig_trend3[i]<- if(result$trend3[i] < 0.1 & Poly.model3$coefficients[4] > 0) 1 else 0
+    result$fit_trend4[i] <- if(result$trend4[i] < 0.1 & Poly.model4$coefficients[5] > 0) result$fit_trend4[i] else NA
+    envi$Ratio.PB$sig_trend4[i]<- if(result$trend4[i] < 0.1 & Poly.model4$coefficients[5] > 0) 1 else 0
+    result$fit_trend5[i] <- if(result$trend5[i] < 0.1 & Poly.model5$coefficients[6] > 0) result$fit_trend5[i] else NA
+    envi$Ratio.PB$sig_trend5[i]<- if(result$trend5[i] < 0.1 & Poly.model5$coefficients[6] > 0) 1 else 0
+    result$fit_trend6[i] <- if(result$trend6[i] < 0.1 & Poly.model6$coefficients[7] > 0) result$fit_trend6[i] else NA
+  }
+  
+  result$Intercept <- ts(result$Intercept, start = sta, frequency = 4)
+  result$trend1 <- ts(result$trend1, start = sta, frequency = 4)
+  result$trend2 <- ts(result$trend2, start = sta, frequency = 4)
+  result$trend3 <- ts(result$trend3, start = sta, frequency = 4)
+  result$trend4 <- ts(result$trend4, start = sta, frequency = 4)
+  result$trend5 <- ts(result$trend5, start = sta, frequency = 4)
+  result$trend6 <- ts(result$trend6, start = sta, frequency = 4)
+  
+  result$fit_trend1 <- ts(result$fit_trend1, start = sta, frequency = 4)
+  result$fit_trend2 <- ts(result$fit_trend2, start = sta, frequency = 4)
+  result$fit_trend3 <- ts(result$fit_trend3, start = sta, frequency = 4)
+  result$fit_trend4 <- ts(result$fit_trend4, start = sta, frequency = 4)
+  result$fit_trend5 <- ts(result$fit_trend5, start = sta, frequency = 4)
+  result$fit_trend6 <- ts(result$fit_trend6, start = sta, frequency = 4)
+  
+  return(result)
+}
+
+fite.model.PB.ETS <- function(envi, mod = "MAN", P.a = 0.9, P.b = 0.11, B.a = 0.9, B.b = 0.11, sta = 1990, wind = 8){
+  l <- length(envi$Ratio.PB$PB)
+  result <- data.table(matrix(NA, nrow = l, ncol = 8))
+  colnames(result) <- c("time", "Intercept", "trend1", "trend2", "trend3", "trend4", "trend5", "trend6")
+  result$time <- seq(to = 2018.75, length.out =  l, by = 0.25)
+  
+  result$fit_trend1 <- envi$Ratio.PB$PB
+  result$fit_trend2 <- envi$Ratio.PB$PB
+  result$fit_trend3 <- envi$Ratio.PB$PB
+  result$fit_trend4 <- envi$Ratio.PB$PB
+  result$fit_trend5 <- envi$Ratio.PB$PB
+  result$fit_trend6 <- envi$Ratio.PB$PB
+  
+  result$Intercept <- NA
+  result$trend1 <- NA
+  result$trend2 <- NA
+  result$trend3 <- NA
+  result$trend4 <- NA
+  result$trend5 <- NA
+  result$trend6 <- NA
+  
+  envi$Ratio.PB$sig_trend1 <- 0
+  envi$Ratio.PB$sig_trend2 <- 0
+  envi$Ratio.PB$sig_trend3 <- 0
+  envi$Ratio.PB$sig_trend4 <- 0
+  envi$Ratio.PB$sig_trend5 <- 0
+  
+  for(i in c(wind:(l-5))){
+    data <- data.table(P = window(envi$P.Data$P, end = c(sta + (i+4)*0.25)))
+    data$B <- window(envi$B.Data$BPS_E, end = c(sta + (i+4)*0.25))
+    PB.forecast <- forecast(ets(window(envi$Ratio.PB$PB, end = c(sta + (i-1)*0.25))))$mean
     data_PB <- data.table(PB = window(envi$Ratio.PB$PB, start = c(sta + (i-wind)*0.25) ,end = c(sta + (i+4)*0.25)))
     data_PB$PB[c((length(data_PB$PB)-4):(length(data_PB$PB)))] <- PB.forecast[c(1:5)]
     data_PB$PB <- ts(data_PB$PB, start = c(sta + (i-8)*0.25), frequency = 4)

@@ -11,11 +11,23 @@ kpss.test(MSFT$Ratio.PB$PB)
 
 #PB ARIMA
 dat <- window(MSFT$Ratio.PB$PB, start = c(1990), end = c(2018, 3))
-model <- auto.arima(dat)
+model <- auto.arima(MSFT$Ratio.PB$PB)
 mean((MSFT$Ratio.PB$PB - model$fitted)^2, na.rm = TRUE)
 
+l <- length(MSFT$Ratio.PB$PB)
+
+PB.forecast <- rep(NA, l)
+for(i in c(10:(l-5))){
+  dat <- window(MSFT$Ratio.PB$PB, end = c(1990 + (i-1)*0.25))
+  model <- auto.arima(dat)
+  PB.forecast[i+1] <- forecast(model)$mean[1]
+  #e[i] <- (MSFT$Ratio.PB$PB[i+1] - PB.forecast[1])
+}
+e <- (MSFT$Ratio.PB$PB - PB.forecast)
+mean(e^2, na.rm = TRUE)
+
 #PB ETS
-model <- ets(dat, model = "MAN", damped = FALSE)
+model <- ets(MSFT$Ratio.PB$PB, damped = FALSE, opt.crit = "amse")
 mean((MSFT$Ratio.PB$PB - model$fitted)^2, na.rm = TRUE)
 
 #PB mit P und B forecast
