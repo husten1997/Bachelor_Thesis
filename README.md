@@ -1,4 +1,4 @@
-# Bachelor_Thesis
+# Bachelor Thesis
 
 This is the private repository for the R Project of my Bachelor Thesis.
 
